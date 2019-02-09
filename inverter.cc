@@ -7,7 +7,7 @@
 
 typedef std::map<std::string, std::string> invertedIndex;
 
-void countWords(std::string word, invertedIndex& words, std::string i){
+void addIndex(std::string word, invertedIndex& words, std::string i){
   words[word] = words[word] + i;
 }
 
@@ -23,14 +23,14 @@ int main() {
   while (getline(file, line)){
 
     std::ostringstream ss;
-    ss << " " << "i";
+    ss << i << " ";
 
     std::ifstream files (line.c_str());
     if (!files.is_open()) return 0;
     std::string word;
     while (files >>word)
       {
-        countWords(word, w, ss.str());
+        addIndex(word, w, ss.str());
       }
     ++i;
   }
@@ -38,7 +38,7 @@ int main() {
 
   for (invertedIndex::iterator p = w.begin();
        p!= w.end(); ++p) {
-    std::cout << p->first << ":"
-              << p->second << "\n";
+    std::cout << p->first << ": "
+              << p->second << " \n";
   }
 }
