@@ -82,6 +82,6 @@ int main(int argc, char** argv) {
   for (invertedIndex::iterator p = w.begin();
        p!= w.end(); ++p) {
     std::cout << p->first << ": "
-              << p->second << " \n";
+              << p->second << "\n";
   }
 }
