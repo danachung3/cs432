@@ -1,3 +1,10 @@
+//to do:
+// - Fix edge cases: parse words only, handle empty file, spacin...
+// - read in input file correctly
+// - Do you need to close the files???
+// - check auto grader
+// - is this the most efficient way/does it matter
+
 #include <iostream>
 #include <fstream>
 #include <map>
@@ -24,7 +31,6 @@ int main() {
 
     std::ostringstream ss;
     ss << i << " ";
-
     std::ifstream files (line.c_str());
     if (!files.is_open()) return 0;
     std::string word;
