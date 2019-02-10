@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
   while (getline(file, line)){
 
     std::ostringstream ss;
-    ss << i << " ";
+    ss << " " << i;
     std::ifstream files (line.c_str());
     if (!files.is_open()) return 0;
     std::string word;
@@ -81,7 +81,7 @@ int main(int argc, char** argv) {
 
   for (invertedIndex::iterator p = w.begin();
        p!= w.end(); ++p) {
-    std::cout << p->first << ": "
+    std::cout << p->first << ":"
               << p->second << "\n";
   }
 }
