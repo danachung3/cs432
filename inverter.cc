@@ -20,11 +20,8 @@ void addIndex(std::string word, invertedIndex& words, std::string i){
 }
 
 int main(int argc, char** argv) {
-  // std::cout << argv[1];
   std::string filename = argv[1];
-  //std::cout << filename;
   std::ifstream file (filename.c_str());
-  //std::ifstream file("inputs.txt");
   if (!file.is_open()) return 0;
 
   invertedIndex w;
@@ -40,14 +37,15 @@ int main(int argc, char** argv) {
     std::string word;
     while (files >>word)
       {
-	if(word.at(word.length()-1) == '.') {
-	  word.erase(word.length()-1, 1);
+	for(int j = 0; j < word.length(); ++j){
+	  if(int(word.at(j)) < 65 || int(word.at(j)) > 122 || (int(word.at(j)) < 90 && int(word.at(j)) < 97))
+	      word.erase(j, 1);
 	}
-        addIndex(word, w, ss.str());
+	  addIndex(word, w, ss.str());
       }
-    ++i;
+	++i;
   }
-
+  
 
   for (invertedIndex::iterator p = w.begin();
        p!= w.end(); ++p) {
