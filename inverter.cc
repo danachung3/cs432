@@ -1,9 +1,10 @@
 //to do:
-// - Fix edge cases: parse words only, handle empty file, spacin...
+// - Fix edge cases: parse words only, handle empty file, spacing...
 // - read in input file correctly
 // - Do you need to close the files???
 // - check auto grader
 // - is this the most efficient way/does it matter
+// - autograder
 
 #include <iostream>
 #include <fstream>
