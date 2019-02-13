@@ -16,7 +16,10 @@
 typedef std::map<std::string, std::string> invertedIndex;
 
 void addIndex(std::string word, invertedIndex& words, std::string i){
-  words[word] = words[word] + i;
+  if (words[word].find(i) == -1){
+      words[word] = words[word] + i;
+    }
+
 }
 
 bool isLetter(char c) {
@@ -25,7 +28,7 @@ bool isLetter(char c) {
   }
   return true;
 }
-	  
+
 
 void parseWord(std::string word, invertedIndex& w, std::string i){
   if(word.length() == 0 || int(word.at(0)) == 32) {
@@ -45,8 +48,8 @@ void parseWord(std::string word, invertedIndex& w, std::string i){
   }
   addIndex(word, w, i);
 }
-  
-    
+
+
 
 int main(int argc, char** argv) {
   std::string filename = argv[1];
@@ -71,7 +74,7 @@ int main(int argc, char** argv) {
 	  if(int(word.at(j)) < 65 || int(word.at(j)) > 122 || (int(word.at(j)) < 90 && int(word.at(j)) < 97)) {
 	      word.erase(j, 1);
 	      --j;
-	  }	  
+	  }
 	}
 	addIndex(word, w, ss.str());*/
 	}
