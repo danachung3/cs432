@@ -25,7 +25,7 @@ void consumer(void* a) {
     while(!queueFull() && livethreads) {
       thread_wait(lock, canTake);
     }
-    //Gets closest request to current disk 
+    //Gets closest request to current disk
     tuple<int,int> request = queuePop(disk);
     disk = get<1>(request);
     cout << "service requester " << get<0>(request) << " track " << get<1>(request) << endl;
@@ -51,25 +51,23 @@ void producer(void* a) {
   }
 }
 
-
-
-
-int main(int c, char** argv[]) {
+int main(int argc, char** argv[]) {
   int max_disk_queue = argv[1]; //maximum number of requests the disk can hold
-  
+  int requester_thread_count = argc - 2; //number of threads making disk requests
+
+  for (int i = 2; i < argc; ++i) //for every input file...
+    string filename = argv[i];
+    ifstream file (filename.c_str());
+    string line;
+    if (!file.is_open()) return 0; //file cannot be opened
+
+    thread_create( producer  , tuple?   )//create thread??
+    while (getline (file, line)){ //for each line in the input file...
+        int track_number = line; // get track number of request
 
 
 
-  std::ifstream file (filename.c_str()); //reads requester's series of requests
-  std::string line;
-  if (!file.is_open()) return 0; //file cannot be opened
-  while (getline (file, line)){
-      std::string request;
-
-      //for each request do something...
-  }
-
-
+    }
 
 
 }
