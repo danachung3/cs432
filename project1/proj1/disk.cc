@@ -5,7 +5,6 @@
 #include <tuple>
 using namespace std;
 
-
 int livethreads = 0;
 int requests = 0;
 int lock = 100;
@@ -24,7 +23,7 @@ bool queueEmpty() {
   return queue.size() == 0;   
 }
 bool needsToWait() {
-  return !queueFull();
+  return (!queueFull() && (livethreads >= max_disk_queue));
 }
 
 
@@ -43,9 +42,9 @@ tuple<int,int> queuePop(int disk) {
 }
 
 void producer(void* arg) {
-  thread_lock(live);
-  livethreads++;
-  thread_unlock(live);
+  //thread_lock(live);
+  
+  //thread_unlock(live);
   string line;
   tuple<int,string>* fileInfo = (tuple<int,string>*) arg;
   int fileNumber = get<0>(*fileInfo);
@@ -69,11 +68,16 @@ void producer(void* arg) {
     //Waiting until specific request is serviced
     thread_wait(lock, fileNumber);
     requests--;
+    if(file.peek() == EOF) {
+      livethreads--;
+      cout << "Found end of file " << fileNumber << "\n";
+    }
     thread_unlock(lock);
+
   }
-  thread_lock(live);
-  livethreads--;
-  thread_unlock(live);
+  // thread_lock(live);
+  //  livethreads--;
+  //  thread_unlock(live);
 }
 
 
@@ -83,8 +87,12 @@ void consumer() {
   while(1){
     thread_lock(lock);
     //Need to wait until queue is full to get optimal disk track pick
-    while(needsToWait()){//&& livethreads > 0 ) {
-      thread_wait(lock, hasRequest);
+    if(!queueFull()) {
+      cout << "Livethreads: " << livethreads << "\n";
+      cout << "Max Disk Queue: " << max_disk_queue << "\n";
+      while(!queueFull()){
+	thread_wait(lock, hasRequest);
+      }
     }
    
     //Processes disk request
@@ -102,8 +110,9 @@ void consumer() {
 void beginThreads() {
   thread_create((thread_startfunc_t ) consumer, (void *) 5);
   for(int i = 0; i < filenames.size(); i++){
+    livethreads++;
     thread_create((thread_startfunc_t) producer, (void *) static_cast<void*>(&filenames[i]));
-    thread_yield();
+      thread_yield();
   }
 }
 
@@ -114,16 +123,7 @@ int main(int argc, char** argv) {
   for (int i = 2; i < argc; ++i) {//for every input file...
     tuple<int,string> fileInfo = make_tuple(i - 2, argv[i]);
     auto iter = filenames.insert(filenames.end(), fileInfo);
+  }
 
-    //  string filename = argv[i];
-  //ifstream file (filename.c_str());
-  //string line;
-  //if (!file.is_open()) return 0; //file cannot be opened
-  //  cout << "creating " << filename << "\n";
-  //  thread_create((thread_startfunc_t) producer, (void *) static_cast<void*>(&filename));//create thread??
-      //while (getline (file, line)){ //for each line in the input file...
-      // int track_number = line;
-    }
   thread_libinit((thread_startfunc_t ) beginThreads, (void *) 5);
-
 }
