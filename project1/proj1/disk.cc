@@ -22,10 +22,6 @@ bool queueFull() {
 bool queueEmpty() {
   return queue.size() == 0;   
 }
-bool needsToWait() {
-  return (!queueFull() && (livethreads >= max_disk_queue));
-}
-
 
 tuple<int,int> queuePop(int disk) {
   int index = 0;
@@ -42,59 +38,55 @@ tuple<int,int> queuePop(int disk) {
 }
 
 void producer(void* arg) {
-  //thread_lock(live);
-  
-  //thread_unlock(live);
+  thread_lock(live);
+  livethreads++;
+  thread_unlock(live);
+
+  //Parsing the file
   string line;
   tuple<int,string>* fileInfo = (tuple<int,string>*) arg;
   int fileNumber = get<0>(*fileInfo);
   string fileName = get<1>(*fileInfo);
   ifstream file (fileName);
-  //  cout << "Processing " << fileName << "\n";
+
+  //Runs through each line/disk request
   while(getline (file, line)) {//file a has more disk requests
     thread_lock(lock);
     requests++;
-    //cout << filename << " aquired lock \n";
+
+    //Must wait if there is no room in the queue
     while(queueFull()) {
       thread_wait(lock, hasRoom);
     }
-    //cout << filename << " is done waiting \n";
+    
+    //Parsing
     int track = stoi(line, nullptr, 0); //String to int conversion
     tuple<int,int> request = make_tuple(fileNumber,track);
     auto iter = queue.insert (queue.begin(), request);
     cout << "requester " << fileNumber << " track " << track << endl;
     thread_signal(lock, hasRequest);
-    //cout << "Signaling hasRequest\n";
+
     //Waiting until specific request is serviced
     thread_wait(lock, fileNumber);
     requests--;
+    //Determines whether the thread is done
     if(file.peek() == EOF) {
       livethreads--;
-      cout << "Found end of file " << fileNumber << "\n";
     }
     thread_unlock(lock);
-
   }
-  // thread_lock(live);
-  //  livethreads--;
-  //  thread_unlock(live);
 }
-
-
 
 void consumer() {
   int disk = 0;
-  while(1){
+  while(!queueEmpty()){
     thread_lock(lock);
+
     //Need to wait until queue is full to get optimal disk track pick
-    if(!queueFull()) {
-      cout << "Livethreads: " << livethreads << "\n";
-      cout << "Max Disk Queue: " << max_disk_queue << "\n";
-      while(!queueFull()){
-	thread_wait(lock, hasRequest);
-      }
+    while(!queueFull() && (livethreads > max_disk_queue)){
+      thread_wait(lock, hasRequest);
     }
-   
+    
     //Processes disk request
     tuple<int,int> request = queuePop(disk);
     disk = get<1>(request);
@@ -108,12 +100,10 @@ void consumer() {
 }
 
 void beginThreads() {
-  thread_create((thread_startfunc_t ) consumer, (void *) 5);
   for(int i = 0; i < filenames.size(); i++){
-    livethreads++;
     thread_create((thread_startfunc_t) producer, (void *) static_cast<void*>(&filenames[i]));
-      thread_yield();
   }
+    thread_create((thread_startfunc_t ) consumer, (void *) 5);
 }
 
 
@@ -124,6 +114,5 @@ int main(int argc, char** argv) {
     tuple<int,string> fileInfo = make_tuple(i - 2, argv[i]);
     auto iter = filenames.insert(filenames.end(), fileInfo);
   }
-
   thread_libinit((thread_startfunc_t ) beginThreads, (void *) 5);
 }
