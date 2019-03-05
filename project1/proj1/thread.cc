@@ -51,13 +51,12 @@ int start_thread (thread_startfunc_t func, void *arg) {
   }
   previous = current;
   current = pop();
-  if(current == NULL) {
-    cout << "Thread library exiting.";
-    exit(0);
+  if(readyQueue.empty()) {
+    cout << "Thread library exiting.\n";
+    return 0;
   }
-  //    interrupt_enable();
+
   swapcontext(previous, current);
-  //interrupt_disable();
   return 0;
 }
 
@@ -72,7 +71,7 @@ int thread_libinit (thread_startfunc_t func, void *arg) {
   current->uc_stack.ss_flags = 0;
   current->uc_link = NULL;
   
-    interrupt_disable();
+  interrupt_disable();
   makecontext(current, (void (*) ()) start_thread, 2, func, arg);
   setcontext(current);
 }
@@ -92,11 +91,13 @@ int thread_create (thread_startfunc_t func, void *arg) {
   makecontext(newThread, (void(*)()) start_thread, 2, func, arg);
   auto iter = readyQueue.insert(readyQueue.end(), newThread);
   //If there are no other running threads, run?
-
-  return 1;
+  
+  interrupt_enable();
+  return 0;
 }
 
-/**
+
+
 int thread_lock (unsigned int lock) {
   interrupt_disable();
   //If lock doesnt exist, create it
@@ -116,7 +117,7 @@ int thread_lock (unsigned int lock) {
   interrupt_enable();
   return 1;
 }
-*/
+
 /**
 int thread_unlock (unsigned int lock) {return 1;}
 int thread_wait (unsigned int lock, unsigned int cond) {return 1;}
@@ -127,20 +128,19 @@ int thread_broadcast (unsigned int lock, unsigned int cond) {return 1;}
 
 int thread_yield(void) {
   //Check that there is another thread to run
+
+  interrupt_disable();
   ucontext* next = pop();
   if(next == NULL) {
     setcontext(current);
   }
   else {
     ucontext* prev = current;
-
-    //    interrupt_enable();
-    //      interrupt_disable();
     current = next;
     auto iter = readyQueue.insert(readyQueue.end(), prev);
     swapcontext(prev, current);
-    
-    
   }
+  interrupt_enable();
+  
   return 0;
 }
