@@ -2,8 +2,9 @@
 #include <fstream>
 #include <vector>
 #include <tuple>
-#include "ucontext.h"
+#include <ucontext.h>
 #include "interrupt.h"
+#include "thread.h"
 using namespace std;
 
 typedef void (*thread_startfunc_t) (void *);
@@ -15,10 +16,11 @@ struct lockStruct {
   ucontext_t* currentOwner;
 } ;
 
-const int STACK_SIZE = 100;
+//const int STACK_SIZE = 100;
 
 vector<ucontext_t*> readyQueue;
 vector<lockStruct> locks;
+//Map
 ucontext_t* current;
 ucontext_t* previous;
 
@@ -37,6 +39,28 @@ int findLock(int id) {
   return -1;
 }
 
+int start_thread (thread_startfunc_t func, void *arg) {
+  interrupt_enable();
+  (*func)(arg);
+  interrupt_disable();
+
+  //Cleanup, free previously used thread
+  if(previous != NULL) {
+    free(previous->uc_stack.ss_sp);
+    free(previous);
+  }
+  previous = current;
+  current = pop();
+  if(current == NULL) {
+    cout << "Thread library exiting.";
+    exit(0);
+  }
+  //    interrupt_enable();
+  swapcontext(previous, current);
+  //interrupt_disable();
+  return 0;
+}
+
 
 int thread_libinit (thread_startfunc_t func, void *arg) {
   current = new ucontext_t;
@@ -48,20 +72,9 @@ int thread_libinit (thread_startfunc_t func, void *arg) {
   current->uc_stack.ss_flags = 0;
   current->uc_link = NULL;
   
-  
-  makecontext(current, (void (*) ()) func, 1, arg);
+    interrupt_disable();
+  makecontext(current, (void (*) ()) start_thread, 2, func, arg);
   setcontext(current);
-}
-
-int start_thread (thread_startfunc_t func, void *arg) {
-  interrupt_enable();
-  (*func)(arg);
-  interrupt_disable();
-  free(previous->uc_stack.ss_sp);
-  free(previous);
-  previous = current;
-  swapcontext(current, pop());
-  return 1;
 }
 
 
@@ -75,13 +88,15 @@ int thread_create (thread_startfunc_t func, void *arg) {
   newThread->uc_stack.ss_flags = 0;
   newThread->uc_link = NULL;
 
-  
-  //How do we makecontext for our helper method that isn't a ucontext? Make it one?
-  //makecontext(start_thread, 2, func, arg);
+  interrupt_disable();
+  makecontext(newThread, (void(*)()) start_thread, 2, func, arg);
   auto iter = readyQueue.insert(readyQueue.end(), newThread);
+  //If there are no other running threads, run?
+
   return 1;
 }
 
+/**
 int thread_lock (unsigned int lock) {
   interrupt_disable();
   //If lock doesnt exist, create it
@@ -101,7 +116,7 @@ int thread_lock (unsigned int lock) {
   interrupt_enable();
   return 1;
 }
-
+*/
 /**
 int thread_unlock (unsigned int lock) {return 1;}
 int thread_wait (unsigned int lock, unsigned int cond) {return 1;}
@@ -111,9 +126,21 @@ int thread_broadcast (unsigned int lock, unsigned int cond) {return 1;}
 
 
 int thread_yield(void) {
+  //Check that there is another thread to run
   ucontext* next = pop();
-  swapcontext(current, next);
-  auto iter = readyQueue.insert(readyQueue.end(), current);
-  current = next;
-  return 1;
+  if(next == NULL) {
+    setcontext(current);
+  }
+  else {
+    ucontext* prev = current;
+
+    //    interrupt_enable();
+    //      interrupt_disable();
+    current = next;
+    auto iter = readyQueue.insert(readyQueue.end(), prev);
+    swapcontext(prev, current);
+    
+    
+  }
+  return 0;
 }
