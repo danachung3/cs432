@@ -6,20 +6,24 @@
 #include "interrupt.h"
 using namespace std;
 
+typedef void (*thread_startfunc_t) (void *);
+
 struct lockStruct {
   int id;
   bool busy;
   vector<ucontext_t*> blocked;
   ucontext_t* currentOwner;
 } ;
+
 const int STACK_SIZE = 100;
+
 vector<ucontext_t*> readyQueue;
-vector<lock> locks;
+vector<lockStruct> locks;
 ucontext_t* current;
 ucontext_t* previous;
 
 ucontext_t* pop() {
-  uncontext* popped = readyQueue[0];
+  ucontext_t* popped = readyQueue[0];
   readyQueue.erase(readyQueue.begin());
   return popped;
 }
@@ -34,8 +38,8 @@ int findLock(int id) {
 }
 
 
-int thread_libinit (thread_startfunct_t func, void *arg) {
-  current = new ucontext_t*;
+int thread_libinit (thread_startfunc_t func, void *arg) {
+  current = new ucontext_t;
   getcontext(current);
   
   char *stack = new char [STACK_SIZE];
@@ -49,8 +53,20 @@ int thread_libinit (thread_startfunct_t func, void *arg) {
   setcontext(current);
 }
 
+int start_thread (thread_startfunc_t func, void *arg) {
+  interrupt_enable();
+  (*func)(arg);
+  interrupt_disable();
+  free(previous->uc_stack.ss_sp);
+  free(previous);
+  previous = current;
+  swapcontext(current, pop());
+  return 1;
+}
+
+
 int thread_create (thread_startfunc_t func, void *arg) {
-  ucontext_t* newThread = new ucontext_t*;
+  ucontext_t* newThread = new ucontext_t;
   getcontext(newThread);
 
   char *stack = new char [STACK_SIZE];
@@ -60,20 +76,9 @@ int thread_create (thread_startfunc_t func, void *arg) {
   newThread->uc_link = NULL;
 
   
-
-  makecontext(start_thread, 2, func, arg);
+  //How do we makecontext for our helper method that isn't a ucontext? Make it one?
+  //makecontext(start_thread, 2, func, arg);
   auto iter = readyQueue.insert(readyQueue.end(), newThread);
-  return 1;
-}
-
-int start_thread (thread_startfunc_t func, void *arg) {
-  interrupt_enable();
-  *(func)(arg);
-  interrupt_disable();
-  free(previous->uc_stack.ss_sp);
-  free(previous);
-  previous = currentThread;
-  swapContext(currentThread, pop());
   return 1;
 }
 
@@ -90,17 +95,20 @@ int thread_lock (unsigned int lock) {
     ourLock.busy = true;
   } else {
     //What thread do we add? Not currentThread right?
-    auto iter = ourLock.blocked.insert(ourLock.blocked.end(), currentThread);
-    swapcontext(currentThread, pop());
+    auto iter = ourLock.blocked.insert(ourLock.blocked.end(), current);
+    swapcontext(current, pop());
   }
   interrupt_enable();
   return 1;
 }
 
+/**
 int thread_unlock (unsigned int lock) {return 1;}
 int thread_wait (unsigned int lock, unsigned int cond) {return 1;}
 int thread_signal (unsigned int lock, unsigned int cond) {return 1;}
 int thread_broadcast (unsigned int lock, unsigned int cond) {return 1;}
+*/
+
 
 int thread_yield(void) {
   ucontext* next = pop();
