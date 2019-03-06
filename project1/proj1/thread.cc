@@ -14,6 +14,7 @@ struct lockStruct {
   bool busy;
   vector<ucontext_t*> blocked;
   ucontext_t* currentOwner;
+  map<unsigned int, vector<ucontext_t>> lockMap;
 };
 
 
@@ -94,7 +95,6 @@ int thread_create (thread_startfunc_t func, void *arg) {
   interrupt_disable();
   makecontext(newThread, (void(*)()) start_thread, 2, func, arg);
   auto iter = readyQueue.insert(readyQueue.end(), newThread);
-  //If there are no other running threads, run?
   
   interrupt_enable();
   return 0;
@@ -104,35 +104,27 @@ int thread_create (thread_startfunc_t func, void *arg) {
 
 int thread_lock (unsigned int lock) {
   interrupt_disable();
-  //  cout << "Locking thread";
   //If lock doesnt exist, create it
   int index = findLock(lock);
   if(index < 0) {
-    //    cout << "creating new lock\n";
     //create lock and add to vector
     vector<ucontext_t*> newBlock;
     struct lockStruct newLock = {lock, false, newBlock, current};
     auto iter = locks.insert(locks.end(), newLock);
     index = locks.size()-1;
   }
-  //cout << "found lockstruct";
   //We are so sorry for our variable names
   lockStruct ourLock = locks[index];
   if(!ourLock.busy) {
     ourLock.busy = true;
     ourLock.currentOwner = current;
-    // cout << "adding to ready queue\n";
     // auto iter = readyQueue.insert(readyQueue.end(), current);
     interrupt_enable();
     return 0;
 
   } else {
-    cout << "adding to blocked queue\n";
-    //What thread do we add? Not currentThread right?
     auto iter = ourLock.blocked.insert(ourLock.blocked.end(), current);
-  
-
-    //cout << "swapping contexts";
+ 
     ucontext* next = pop();
     if(next == NULL) {
       //setcontext(current);
@@ -178,9 +170,45 @@ int thread_unlock (unsigned int lock) {
   return 0;
 }
 
+
+
+
+int thread_wait (unsigned int lock, unsigned int cond) {
+  interrupt_disable();
+
+  vector<unsigned int> conditions;
+  auto iter = conditions.insert(conditions.end(), cond); 
+  
+  // if lock doesnt exist in map, add to map?
+  int index = findLock(lock);
+  if (index < 0){
+    
+  } 
+  else {
+    lockStruct ourLock = locks[index];
+    ourLock.lockMap.insert(lock, conditions); 
+    auto iter = conditions.insert(conditions.end(), cond);
+    
+  }
+  
+
+  interrrupt_enable(); 
+  return 1;
+}
+
+int thread_signal (unsigned int lock, unsigned int cond) {
+  interrupt_disable();
+
+  
+  interrupt_enable();
+  return 1;
+}
+
+
+
+
+
 /*
-int thread_wait (unsigned int lock, unsigned int cond) {return 1;}
-int thread_signal (unsigned int lock, unsigned int cond) {return 1;}
 int thread_broadcast (unsigned int lock, unsigned int cond) {return 1;}
 */
 
