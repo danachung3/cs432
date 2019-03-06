@@ -27,6 +27,7 @@ ucontext_t* current;
 ucontext_t* previous;
 
 ucontext_t* pop() {
+  if(readyQueue.size() == 0) { return NULL;}
   ucontext_t* popped = readyQueue[0];
   readyQueue.erase(readyQueue.begin());
   return popped;
@@ -103,58 +104,78 @@ int thread_create (thread_startfunc_t func, void *arg) {
 
 int thread_lock (unsigned int lock) {
   interrupt_disable();
+  //  cout << "Locking thread";
   //If lock doesnt exist, create it
   int index = findLock(lock);
   if(index < 0) {
+    //    cout << "creating new lock\n";
     //create lock and add to vector
-    vector<ucontext_t*> newBlock; 
-    struct lockStruct newLock = {lock, true, newBlock, current};
+    vector<ucontext_t*> newBlock;
+    struct lockStruct newLock = {lock, false, newBlock, current};
     auto iter = locks.insert(locks.end(), newLock);
     index = locks.size()-1;
   }
+  //cout << "found lockstruct";
   //We are so sorry for our variable names
   lockStruct ourLock = locks[index];
   if(!ourLock.busy) {
     ourLock.busy = true;
-    auto iter = readyQueue.insert(readyQueue.end(), current); 
+    ourLock.currentOwner = current;
+    // cout << "adding to ready queue\n";
+    // auto iter = readyQueue.insert(readyQueue.end(), current);
+    interrupt_enable();
+    return 0;
+
   } else {
+    cout << "adding to blocked queue\n";
     //What thread do we add? Not currentThread right?
     auto iter = ourLock.blocked.insert(ourLock.blocked.end(), current);
-  }
-
-  ucontext* next = pop();
-  if(next == NULL) {
-    exit(0);
-  }
-  else {
-    ucontext* prev = current;
-    current = next;
-    swapcontext(prev, current);
-  }
   
+
+    //cout << "swapping contexts";
+    ucontext* next = pop();
+    if(next == NULL) {
+      //setcontext(current);
+      interrupt_enable();
+      cout <<"deadlock\n";
+      return 0;
+    }
+    else {
+      ucontext* prev = current;
+      current = next;
+      swapcontext(prev, current);
+      //    swapcontext(current, prev);  
+    }
+  }
   interrupt_enable();
-  return 1;
+  return 0;
 }
 
 int thread_unlock (unsigned int lock) {
   interrupt_disable();
+  //  cout << "starting unlock";
   int index = findLock(lock);
 
   if (index < 0) {
+    //cout<< "Can't find lock";
     return -1;
   }
+  //  cout << "getting lockstruct in unlock";
   lockStruct ourLock = locks[index];
   if(ourLock.busy) {
     ourLock.busy = false;
     if (!ourLock.blocked.empty()) {
+      //  cout << "about to get off queue";
       ucontext* popped = ourLock.blocked[0];
+      //cout << "got off queue";
       ourLock.blocked.erase(ourLock.blocked.begin());
-      ucontext* unblock = popped;
-      ourLock.currentOwner = unblock;
+      ourLock.currentOwner = popped;
       ourLock.busy = true; 
-      auto iter = readyQueue.insert(readyQueue.end(), unblock); 
+      auto iter = readyQueue.insert(readyQueue.end(), popped); 
     }
-  } 
+  }
+  interrupt_enable();
+  return 0;
 }
 
 /*
