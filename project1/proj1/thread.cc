@@ -50,11 +50,11 @@ int start_thread (thread_startfunc_t func, void *arg) {
     free(previous);
   }
   previous = current;
-  current = pop();
   if(readyQueue.empty()) {
     cout << "Thread library exiting.\n";
-    return 0;
+    exit(0);
   }
+  current = pop();
 
   swapcontext(previous, current);
   return 0;
