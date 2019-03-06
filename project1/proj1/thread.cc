@@ -32,6 +32,7 @@ ucontext_t* pop() {
   return popped;
 }
 
+
 int findLock(unsigned int id) {
   for(int i = 0; i < locks.size(); i++) {
     if(locks[i].id == id) {
@@ -135,14 +136,25 @@ int thread_lock (unsigned int lock) {
   return 1;
 }
 
-
-
 int thread_unlock (unsigned int lock) {
   interrupt_disable();
   int index = findLock(lock);
-  
 
-
+  if (index < 0) {
+    return -1;
+  }
+  lockStruct ourLock = locks[index];
+  if(ourLock.busy) {
+    ourLock.busy = false;
+    if (!ourLock.blocked.empty()) {
+      ucontext* popped = ourLock.blocked[0];
+      ourLock.blocked.erase(ourLock.blocked.begin());
+      ucontext* unblock = popped;
+      ourLock.currentOwner = unblock;
+      ourLock.busy = true; 
+      auto iter = readyQueue.insert(readyQueue.end(), unblock); 
+    }
+  } 
 }
 
 /*
