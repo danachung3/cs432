@@ -10,11 +10,13 @@ using namespace std;
 typedef void (*thread_startfunc_t) (void *);
 
 struct lockStruct {
-  int id;
+  unsigned int id;
   bool busy;
   vector<ucontext_t*> blocked;
   ucontext_t* currentOwner;
-} ;
+};
+
+
 
 //const int STACK_SIZE = 100;
 
@@ -30,7 +32,7 @@ ucontext_t* pop() {
   return popped;
 }
 
-int findLock(int id) {
+int findLock(unsigned int id) {
   for(int i = 0; i < locks.size(); i++) {
     if(locks[i].id == id) {
       return i;
@@ -104,22 +106,46 @@ int thread_lock (unsigned int lock) {
   int index = findLock(lock);
   if(index < 0) {
     //create lock and add to vector
+    vector<ucontext_t*> newBlock; 
+    struct lockStruct newLock = {lock, true, newBlock, current};
+    auto iter = locks.insert(locks.end(), newLock);
+    index = locks.size()-1;
   }
   //We are so sorry for our variable names
   lockStruct ourLock = locks[index];
   if(!ourLock.busy) {
     ourLock.busy = true;
+    auto iter = readyQueue.insert(readyQueue.end(), current); 
   } else {
     //What thread do we add? Not currentThread right?
     auto iter = ourLock.blocked.insert(ourLock.blocked.end(), current);
-    swapcontext(current, pop());
   }
+
+  ucontext* next = pop();
+  if(next == NULL) {
+    exit(0);
+  }
+  else {
+    ucontext* prev = current;
+    current = next;
+    swapcontext(prev, current);
+  }
+  
   interrupt_enable();
   return 1;
 }
 
-/**
-int thread_unlock (unsigned int lock) {return 1;}
+
+
+int thread_unlock (unsigned int lock) {
+  interrupt_disable();
+  int index = findLock(lock);
+  
+
+
+}
+
+/*
 int thread_wait (unsigned int lock, unsigned int cond) {return 1;}
 int thread_signal (unsigned int lock, unsigned int cond) {return 1;}
 int thread_broadcast (unsigned int lock, unsigned int cond) {return 1;}
