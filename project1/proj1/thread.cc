@@ -282,7 +282,7 @@ int thread_broadcast (unsigned int lock, unsigned int cond) {return 1;}
 
 int thread_yield(void) {
 
-  cout << "got to yield \n";
+  //  cout << "got to yield \n";
   //Check that there is another thread to run
 
   interrupt_disable();
