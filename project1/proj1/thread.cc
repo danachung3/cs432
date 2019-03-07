@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <map>
 #include <tuple>
 #include <ucontext.h>
 #include "interrupt.h"
@@ -14,7 +15,7 @@ struct lockStruct {
   bool busy;
   vector<ucontext_t*> blocked;
   ucontext_t* currentOwner;
-  map<unsigned int, vector<ucontext_t>> lockMap;
+  map<unsigned int, vector<ucontext_t*>> condMap;
 };
 
 
@@ -109,7 +110,8 @@ int thread_lock (unsigned int lock) {
   if(index < 0) {
     //create lock and add to vector
     vector<ucontext_t*> newBlock;
-    struct lockStruct newLock = {lock, false, newBlock, current};
+    map<unsigned int, vector<ucontext_t*>> condMap;
+    struct lockStruct newLock = {lock, false, newBlock, current, condMap};
     auto iter = locks.insert(locks.end(), newLock);
     index = locks.size()-1;
   }
@@ -175,30 +177,53 @@ int thread_unlock (unsigned int lock) {
 
 int thread_wait (unsigned int lock, unsigned int cond) {
   interrupt_disable();
-
+  /**
   vector<unsigned int> conditions;
   auto iter = conditions.insert(conditions.end(), cond); 
-  
+  */
   // if lock doesnt exist in map, add to map?
   int index = findLock(lock);
   if (index < 0){
-    
+    cout << "Can't find lock";
+    return -1;
   } 
   else {
     lockStruct ourLock = locks[index];
-    ourLock.lockMap.insert(lock, conditions); 
-    auto iter = conditions.insert(conditions.end(), cond);
+    auto iter = ourLock.condMap.find(cond);
+    if(iter == ourLock.condMap.end()) {
+      //Condition not found, must add association to map
+      vector<ucontext_t*> waiting;
+      auto iter2 = waiting.insert(waiting.end(), current);
+      auto iter1 = ourLock.condMap.insert(pair<unsigned int, vector<ucontext_t*>>(cond, waiting));
+    }
+    else {
+      //Adding current thread to end of waiting vector
+      auto iter3 = ourLock.condMap.find(cond)->second.insert(ourLock.condMap.find(cond)->second.end(), current);
+    }
+    
+    //Swap context
+    ucontext* next = pop();
+    if(next == NULL) {
+      //setcontext(current);
+      interrupt_enable();
+      cout <<"deadlock\n";
+      return 0;
+    }
+    else {
+      ucontext* prev = current;
+      current = next;
+      swapcontext(prev, current);
+      //    swapcontext(current, prev);  
+    }
     
   }
-  
-
-  interrrupt_enable(); 
+  interrupt_enable(); 
   return 1;
 }
 
 int thread_signal (unsigned int lock, unsigned int cond) {
   interrupt_disable();
-
+  
   
   interrupt_enable();
   return 1;
