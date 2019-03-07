@@ -29,7 +29,7 @@ ucontext_t* current;
 ucontext_t* previous;
 
 ucontext_t* pop() {
-  if(readyQueue.size() == 0) { return NULL;}
+  if(readyQueue.empty()) { return NULL;}
   ucontext_t* popped = readyQueue[0];
   readyQueue.erase(readyQueue.begin());
   return popped;
@@ -38,6 +38,7 @@ ucontext_t* pop() {
 
 int findLock(unsigned int id) {
   for(int i = 0; i < locks.size(); i++) {
+    cout << "print i" << i << locks.size();
     if(locks[i].id == id) {
       return i;
     }
@@ -123,7 +124,7 @@ int swap() {
 
 int thread_lock (unsigned int lock) {
   interrupt_disable();
-  cout << "get here";
+  //cout << "get here";
   //If lock doesnt exist, create it
   int index = findLock(lock);
   if(index < 0) {
@@ -134,29 +135,31 @@ int thread_lock (unsigned int lock) {
     auto iter = locks.insert(locks.end(), newLock);
     index = locks.size()-1;
   }
-  cout << "lock";
+  //  cout << "lock";
   //We are so sorry for our variable names
   lockStruct ourLock = locks[index];
   if(!ourLock.busy) {
-    cout << "hey";
+    //cout << "hey";
     ourLock.busy = true;
     ourLock.currentOwner = current;
     // auto iter = readyQueue.insert(readyQueue.end(), current);
+    //cout << "moving on \n";
     interrupt_enable();
     return 0;
 
   } else {
-    cout << "sup";
+    //cout << "sup";
     auto iter = ourLock.blocked.insert(ourLock.blocked.end(), current);
     swap();
   }
+  //  cout <<"end lock\n"; 
   interrupt_enable();
   return 0;
 }
 
 int thread_unlock (unsigned int lock) {
   interrupt_disable();
-  cout << "starting unlock";
+  //cout << "starting unlock";
   int index = findLock(lock);
 
   if (index < 0) {
@@ -177,7 +180,7 @@ int thread_unlock (unsigned int lock) {
       auto iter = readyQueue.insert(readyQueue.end(), popped); 
     }
   }
-  cout << "FUCK";
+  //  cout << "FUCK";
   interrupt_enable();
   return 0;
 }
@@ -188,12 +191,7 @@ int thread_unlock (unsigned int lock) {
 int thread_wait (unsigned int lock, unsigned int cond) {
   interrupt_disable();
   cout << "got to WAIT\n";
-  
-  /**
-  vector<unsigned int> conditions;
-  auto iter = conditions.insert(conditions.end(), cond); 
-  */
-  // if lock doesnt exist in map, add to map?
+
   int index = findLock(lock);
   if (index < 0){
     cout << "Can't find lock";
@@ -229,6 +227,8 @@ int thread_wait (unsigned int lock, unsigned int cond) {
     cout << "swapping context";
     //Swap Context
     swap();
+
+    //ADD LOCK
   }
   interrupt_enable(); 
   return 1;
@@ -236,18 +236,19 @@ int thread_wait (unsigned int lock, unsigned int cond) {
 
 int thread_signal (unsigned int lock, unsigned int cond) {
   interrupt_disable();
+  //cout << "SIGNAL START\n";
   int index = findLock(lock);
-  cout << "SIGNAL";
+  //cout << "SIGNALING";
   if (index < 0){
-    cout << "Can't find lock";
-    return -1;
+    //cout << "Can't find lock";
+    return 1;
   } 
   else {
     lockStruct ourLock = locks[index];
     auto iter = ourLock.condMap.find(cond);
     if(ourLock.condMap.find(cond)->second.empty()) {
-      cout <<"throw a fit";
-      exit(0);
+      //cout <<"throw a fit";
+      return 1;
     }
     ucontext_t* popped = ourLock.condMap.find(cond)->second[0];
     ourLock.condMap.find(cond)->second.erase(ourLock.condMap.find(cond)->second.begin());
@@ -274,6 +275,8 @@ int thread_broadcast (unsigned int lock, unsigned int cond) {return 1;}
 
 
 int thread_yield(void) {
+
+  cout << "got to yield \n";
   //Check that there is another thread to run
 
   interrupt_disable();
