@@ -246,11 +246,17 @@ int thread_signal (unsigned int lock, unsigned int cond) {
   else {
     lockStruct ourLock = locks[index];
     auto iter = ourLock.condMap.find(cond);
+    if (iter == ourLock.condMap.end()){
+	cout << "empty";
+	
+    }
     if(ourLock.condMap.find(cond)->second.empty()) {
       //cout <<"throw a fit";
       return 1;
     }
+    cout << "\nis it failing here\n"; 
     ucontext_t* popped = ourLock.condMap.find(cond)->second[0];
+    cout << "no it's failing AFTER \n";
     ourLock.condMap.find(cond)->second.erase(ourLock.condMap.find(cond)->second.begin());
     if(!ourLock.busy){
       ourLock.busy = true;
