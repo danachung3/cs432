@@ -38,7 +38,7 @@ ucontext_t* pop() {
 
 int findLock(unsigned int id) {
   for(int i = 0; i < locks.size(); i++) {
-    cout << "print i" << i << locks.size();
+    //    cout << "print i" << i << locks.size();
     if(locks[i].id == id) {
       return i;
     }
