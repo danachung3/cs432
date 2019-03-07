@@ -104,28 +104,26 @@ int thread_create (thread_startfunc_t func, void *arg) {
 
 
 int swap() {
-    //Swap context
-    ucontext* next = pop();
-    if(next == NULL) {
-      //setcontext(current);
-      interrupt_enable();
-      cout <<"deadlock\n";
-      return 1;
-    }
-    else {
-      ucontext* prev = current;
-      current = next;
-      swapcontext(prev, current);
-      //    swapcontext(current, prev);  
-    }
-    return 0;
+  //Swap context
+  ucontext* next = pop();
+  if(next == NULL) {
+    //setcontext(current);
+    return 1;
+  }
+  else {
+    ucontext* prev = current;
+    current = next;
+    swapcontext(prev, current);
+    //    swapcontext(current, prev);  
+  }
+
+  return 0;
 }
 
 
-int thread_lock (unsigned int lock) {
-  interrupt_disable();
-  //cout << "get here";
-  //If lock doesnt exist, create it
+
+
+int lockHelper (unsigned int lock) {
   int index = findLock(lock);
   if(index < 0) {
     //create lock and add to vector
@@ -135,54 +133,64 @@ int thread_lock (unsigned int lock) {
     auto iter = locks.insert(locks.end(), newLock);
     index = locks.size()-1;
   }
-  //  cout << "lock";
+
   //We are so sorry for our variable names
-  lockStruct ourLock = locks[index];
-  if(!ourLock.busy) {
-    //cout << "hey";
-    ourLock.busy = true;
-    ourLock.currentOwner = current;
-    // auto iter = readyQueue.insert(readyQueue.end(), current);
-    //cout << "moving on \n";
-    interrupt_enable();
+  //  lockStruct ourLock = locks[index];
+  if(!locks[index].busy) {
+    //If lock is not currently being held:
+    locks[index].busy = true;
+    locks[index].currentOwner = current;
     return 0;
 
   } else {
-    //cout << "sup";
-    auto iter = ourLock.blocked.insert(ourLock.blocked.end(), current);
+    //Lock is held by someone else:
+    auto iter = locks[index].blocked.insert(locks[index].blocked.end(), current);
+    //    interrupt_enable();
     swap();
   }
-  //  cout <<"end lock\n"; 
+  return 0;
+}
+
+int thread_lock(unsigned int lock) {
+  interrupt_disable();
+  int temp = lockHelper(lock);
   interrupt_enable();
+  return temp;
+
+}
+
+
+
+
+int unlockHelper (unsigned int lock) {
+  //  interrupt_disable();
+  int index = findLock(lock);
+
+  if (index < 0) {
+    return 1;
+  }
+  //lockStruct ourLock = locks[index];
+  if(locks[index].busy) {
+    locks[index].busy = false;
+    //If there are threads waiting on the blocked queue
+    if (!locks[index].blocked.empty()) {
+      ucontext* popped = locks[index].blocked[0];
+      locks[index].blocked.erase(locks[index].blocked.begin());
+      locks[index].currentOwner = popped;
+      locks[index].busy = true; 
+      auto iter = readyQueue.insert(readyQueue.end(), popped); 
+    }
+  }
+  //  cout << "FUCK";
+  //interrupt_enable();
   return 0;
 }
 
 int thread_unlock (unsigned int lock) {
   interrupt_disable();
-  //cout << "starting unlock";
-  int index = findLock(lock);
-
-  if (index < 0) {
-    //cout<< "Can't find lock";
-    return -1;
-  }
-  //  cout << "getting lockstruct in unlock";
-  lockStruct ourLock = locks[index];
-  if(ourLock.busy) {
-    ourLock.busy = false;
-    if (!ourLock.blocked.empty()) {
-      //  cout << "about to get off queue";
-      ucontext* popped = ourLock.blocked[0];
-      //cout << "got off queue";
-      ourLock.blocked.erase(ourLock.blocked.begin());
-      ourLock.currentOwner = popped;
-      ourLock.busy = true; 
-      auto iter = readyQueue.insert(readyQueue.end(), popped); 
-    }
-  }
-  //  cout << "FUCK";
+  int temp = unlockHelper(lock);
   interrupt_enable();
-  return 0;
+  return temp;
 }
 
 
@@ -190,20 +198,20 @@ int thread_unlock (unsigned int lock) {
 
 int thread_wait (unsigned int lock, unsigned int cond) {
   interrupt_disable();
-  cout << "got to WAIT\n";
+  //cout << "got to WAIT\n";
 
   int index = findLock(lock);
   if (index < 0){
-    cout << "Can't find lock";
+    //cout << "Can't find lock";
     return -1;
   } 
   else {
-    cout << "waiting\n";
+    //cout << "waiting\n";
     lockStruct ourLock = locks[index];
     auto iter = ourLock.condMap.find(cond);
     if(iter == ourLock.condMap.end()) {
       //Condition not found, must add association to map
-      cout << "adding condition to map\n";
+      //cout << "adding condition to map\n";
       vector<ucontext_t*> waiting;
       waiting.insert(waiting.end(), current);
       ourLock.condMap.insert(pair<unsigned int, vector<ucontext_t*>>(cond, waiting));
@@ -213,18 +221,18 @@ int thread_wait (unsigned int lock, unsigned int cond) {
       ourLock.condMap.find(cond)->second.insert(ourLock.condMap.find(cond)->second.end(), current);
     }
 
-    cout << "unlocking in wait\n";
+    //cout << "unlocking in wait\n";
     //Unlock, put stuff on readyQueue
     ourLock.busy = false;
     if (!ourLock.blocked.empty()) {
-      cout << "putting stuff somewhere\n";
+      //cout << "putting stuff somewhere\n";
       ucontext* popped = ourLock.blocked[0];
       ourLock.blocked.erase(ourLock.blocked.begin());
       ourLock.currentOwner = popped;
       ourLock.busy = true; 
       auto iter = readyQueue.insert(readyQueue.end(), popped); 
     }
-    cout << "swapping context";
+    //    cout << "swapping context";
     //Swap Context
     swap();
 
@@ -241,22 +249,26 @@ int thread_signal (unsigned int lock, unsigned int cond) {
   //cout << "SIGNALING";
   if (index < 0){
     //cout << "Can't find lock";
+
     return 1;
   } 
   else {
     lockStruct ourLock = locks[index];
     auto iter = ourLock.condMap.find(cond);
     if (iter == ourLock.condMap.end()){
-	cout << "empty";
-	
+      //	cout << "empty";
+      //Segmentation fault here
+      interrupt_enable();
+      return 1;
     }
     if(ourLock.condMap.find(cond)->second.empty()) {
       //cout <<"throw a fit";
-      return 1;
+      interrupt_enable();
+      return 0;
     }
-    cout << "\nis it failing here\n"; 
+    //    cout << "\nis it failing here\n"; 
     ucontext_t* popped = ourLock.condMap.find(cond)->second[0];
-    cout << "no it's failing AFTER \n";
+    //cout << "no it's failing AFTER \n";
     ourLock.condMap.find(cond)->second.erase(ourLock.condMap.find(cond)->second.begin());
     if(!ourLock.busy){
       ourLock.busy = true;
