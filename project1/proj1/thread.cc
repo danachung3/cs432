@@ -308,7 +308,8 @@ int thread_yield(void) {
   interrupt_disable();
   ucontext* next = pop();
   if(next == NULL) {
-    setcontext(current);
+    interrupt_enable();
+    return 0;
   }
   else {
     ucontext* prev = current;
