@@ -15,18 +15,10 @@ void thread1(void* arg) {
   cout<< "Thread 1 out\n";
 }
 
-void thread2(void* arg) {
-  int* num = (int*) arg;
-  cout<< "Thread 2 recieved: " << num << "\n"; 
-  thread_lock(lock);
-  cout<< "Thread 2 middle\n";
-  thread_unlock(lock);
-  cout<< "Thread 2 out\n";
-}
-
 void startHelper() {
-  thread_create((thread_startfunc_t ) thread1, (void *) 1);
-  thread_create((thread_startfunc_t ) thread2, (void *) 2);
+  for(int i = 0; i < 1000; i++) {
+    thread_create((thread_startfunc_t ) thread1, (void *) 1);
+  }
 }
 
 int main(int argc, char** argv) {

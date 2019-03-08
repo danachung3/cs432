@@ -53,8 +53,10 @@ int start_thread (thread_startfunc_t func, void *arg) {
 
   //Cleanup, free previously used thread
   if(previous != NULL) {
-    free(previous->uc_stack.ss_sp);
-    free(previous);
+    
+    
+    delete (char*) previous->uc_stack.ss_sp;
+    delete previous;
   }
   previous = current;
   if(readyQueue.empty()) {
@@ -71,16 +73,32 @@ int start_thread (thread_startfunc_t func, void *arg) {
 int thread_libinit (thread_startfunc_t func, void *arg) {
   if(inited) {return -1;}
   inited = 1;
-  current = new ucontext_t;
-  getcontext(current);
-  
-  char *stack = new char [STACK_SIZE];
-  current->uc_stack.ss_sp = stack;
-  current->uc_stack.ss_size = STACK_SIZE;
-  current->uc_stack.ss_flags = 0;
-  current->uc_link = NULL;
-  
   interrupt_disable();
+  try {
+  current = new ucontext_t;
+  } catch(bad_alloc) {
+    delete current;
+    interrupt_enable();
+    return -1;
+  }
+  getcontext(current);
+
+  char *stack;
+  
+  try {
+    stack = new char [STACK_SIZE];
+    current->uc_stack.ss_sp = stack;
+    current->uc_stack.ss_size = STACK_SIZE;
+    current->uc_stack.ss_flags = 0;
+    current->uc_link = NULL;
+  } catch(bad_alloc) {
+    delete stack;
+    delete current;
+    interrupt_enable();
+    return -1;
+  }
+
+   
   makecontext(current, (void (*) ()) start_thread, 2, func, arg);
   setcontext(current);
 }
@@ -88,16 +106,27 @@ int thread_libinit (thread_startfunc_t func, void *arg) {
 
 int thread_create (thread_startfunc_t func, void *arg) {
   if(!inited) {return -1;}
-  ucontext_t* newThread = new ucontext_t;
-  getcontext(newThread);
-
-  char *stack = new char [STACK_SIZE];
-  newThread->uc_stack.ss_sp = stack;
-  newThread->uc_stack.ss_size = STACK_SIZE;
-  newThread->uc_stack.ss_flags = 0;
-  newThread->uc_link = NULL;
-
   interrupt_disable();
+
+  ucontext_t* newThread;
+  char *stack;
+  try {
+
+    newThread = new ucontext_t;
+    getcontext(newThread);
+    
+    stack = new char [STACK_SIZE];
+    newThread->uc_stack.ss_sp = stack;
+    newThread->uc_stack.ss_size = STACK_SIZE;
+    newThread->uc_stack.ss_flags = 0;
+    newThread->uc_link = NULL;
+  } catch(bad_alloc) {
+    delete stack;
+    delete newThread;
+    interrupt_enable();
+    return -1;
+  }
+
   makecontext(newThread, (void(*)()) start_thread, 2, func, arg);
   auto iter = readyQueue.insert(readyQueue.end(), newThread);
   
@@ -163,6 +192,11 @@ int unlockHelper (unsigned int lock) {
   if (index < 0) {
     return 1;
   }
+
+  if(!locks[index].busy) {
+    return -1;
+  }
+  
   if(locks[index].busy) {
     locks[index].busy = false;
     if (!locks[index].blocked.empty()) {
