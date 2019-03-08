@@ -18,6 +18,7 @@ void thread1(void* arg) {
 void startHelper() {
   for(int i = 0; i < 1000; i++) {
     thread_create((thread_startfunc_t ) thread1, (void *) 1);
+    cout << "Thread Create Failed";
   }
 }
 
