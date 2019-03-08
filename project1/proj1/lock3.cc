@@ -24,9 +24,23 @@ void thread2(void* arg) {
   cout<< "Thread 2 out\n";
 }
 
+void thread3(void* arg) {
+  int* num = (int*) arg;
+  cout<< "Thread 3 recieved: " << num << "\n"; 
+  thread_lock(lock);
+  cout<< "Thread 3 middle\n";
+  thread_unlock(lock);
+  cout<< "Thread 3 out\n";
+}
+
+
+
+
+
 void startHelper() {
   thread_create((thread_startfunc_t ) thread1, (void *) 1);
   thread_create((thread_startfunc_t ) thread2, (void *) 2);
+  thread_create((thread_startfunc_t ) thread3, (void *) 2);
 }
 
 int main(int argc, char** argv) {
