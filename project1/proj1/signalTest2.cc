@@ -14,7 +14,9 @@ void thread1(void* arg) {
   cout<< "Thread 1 recieved: " << num << "\n";
   // thread_lock(lock);
   while(shared > 5) {
-    thread_wait(lock, sig);
+    if (thread_wait(lock, sig) == -1){
+      cout << "Thread wait should fail";
+    }
   }
   cout<< "Thread 1 middle\n";
   //  thread_unlock(lock);

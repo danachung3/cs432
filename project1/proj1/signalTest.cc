@@ -9,6 +9,10 @@ int sig = 40;
 void thread1(void* arg) {
   int* num = (int*) arg;
   cout<< "Thread 1 recieved: " << num << "\n";
+  if (thread_wait(lock, sig) == -1) {
+    cout << "thread wait before lock \n"; 
+  }
+
   thread_lock(lock);
   while(shared > 5) {
     thread_wait(lock, sig);
@@ -21,6 +25,10 @@ void thread1(void* arg) {
 void thread2(void* arg) {
   int* num = (int*) arg;
   cout<< "Thread 2 recieved: " << num << "\n"; 
+  if (thread_signal(lock, sig) == -1) {
+    cout << "thread signal before lock \n";
+  }
+  
   thread_lock(lock);
   cout<< "Thread 2 middle\n";
 
