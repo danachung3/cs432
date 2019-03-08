@@ -4,6 +4,8 @@
 using namespace std;
 int lock = 0;
 
+// ADDED LOCK AND UNLOCK TWICE 
+
 void thread1(void* arg) {
   int* num = (int*) arg;
   cout<< "Thread 1 recieved: " << num << "\n";
@@ -13,12 +15,13 @@ void thread1(void* arg) {
 
   cout<< "Thread 1 middle\n";
   thread_unlock(lock);
+  thread_unlock(lock);
   cout<< "Thread 1 out\n";
 }
 
 void thread2(void* arg) {
   int* num = (int*) arg;
-  cout<< "Thread 2 recieved: " << num << "\n"; 
+  cout<< "Thread 2 recieved: " << num << "\n";
   thread_lock(lock);
   cout<< "Thread 2 middle\n";
   thread_unlock(lock);
@@ -27,7 +30,7 @@ void thread2(void* arg) {
 
 void thread3(void* arg) {
   int* num = (int*) arg;
-  cout<< "Thread 3 recieved: " << num << "\n"; 
+  cout<< "Thread 3 recieved: " << num << "\n";
   thread_lock(lock);
   cout<< "Thread 3 middle\n";
   thread_unlock(lock);
