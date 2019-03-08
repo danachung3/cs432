@@ -110,7 +110,7 @@ int swap() {
   //Swap context
   ucontext* next = pop();
   if(next == NULL) {
-    cout << "Thread library exiting.";
+    cout << "Thread library exiting.\n";
     exit(0);
   }
   else {
@@ -215,13 +215,13 @@ int thread_signal (unsigned int lock, unsigned int cond) {
   interrupt_disable();
   int index = findLock(lock);
   if (index < 0){
-    return 1;
+    return 0;
   } 
   else {
     auto iter = locks[index].condMap.find(cond);
     if (iter == locks[index].condMap.end()){
       interrupt_enable();
-      return 1;
+      return 0;
     }
     if(locks[index].condMap.find(cond)->second.empty()) {
       interrupt_enable();
