@@ -195,7 +195,7 @@ int thread_lock(unsigned int lock) {
 int unlockHelper (unsigned int lock) {
   int index = findLock(lock);
   if (index < 0) {
-    return 1;
+    return -1;
   }
 
   if(!locks[index].busy) {
@@ -291,7 +291,7 @@ int thread_broadcast (unsigned int lock, unsigned int cond) {
   interrupt_disable();
   int index = findLock(lock);
   if (index < 0){
-    return 1;
+    return -1;
   } 
   else {
     auto iter = locks[index].condMap.find(cond);
