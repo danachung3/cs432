@@ -24,7 +24,7 @@ struct lockStruct {
 
 vector<ucontext_t*> readyQueue;
 vector<lockStruct> locks;
-//Map
+int inited;
 ucontext_t* current;
 ucontext_t* previous;
 
@@ -69,6 +69,8 @@ int start_thread (thread_startfunc_t func, void *arg) {
 
 
 int thread_libinit (thread_startfunc_t func, void *arg) {
+  if(inited) {return -1;}
+  inited = 1;
   current = new ucontext_t;
   getcontext(current);
   
@@ -85,6 +87,7 @@ int thread_libinit (thread_startfunc_t func, void *arg) {
 
 
 int thread_create (thread_startfunc_t func, void *arg) {
+  if(!inited) {return -1;}
   ucontext_t* newThread = new ucontext_t;
   getcontext(newThread);
 
@@ -118,13 +121,8 @@ int swap() {
   return 0;
 }
 
-
-
-
 int lockHelper (unsigned int lock) {
-
-  //cout << "Size of readyQueue at start of lock: " << readyQueue.size() << endl;
-  int index = findLock(lock);
+  int index = findLock(lock);  
   if(index < 0) {
     //create lock and add to vector
     vector<ucontext_t*> newBlock;
@@ -132,6 +130,10 @@ int lockHelper (unsigned int lock) {
     struct lockStruct newLock = {lock, false, newBlock, current, condMap};
     auto iter = locks.insert(locks.end(), newLock);
     index = locks.size()-1;
+  }
+
+  if(locks[index].busy && locks[index].currentOwner == current) {
+    return -1;
   }
 
   //We are so sorry for our variable names
@@ -149,19 +151,15 @@ int lockHelper (unsigned int lock) {
 }
 
 int thread_lock(unsigned int lock) {
+  if(!inited) {return -1;}
   interrupt_disable();
   int temp = lockHelper(lock);
   interrupt_enable();
   return temp;
 }
 
-
-
-
 int unlockHelper (unsigned int lock) {
-  //  interrupt_disable();
   int index = findLock(lock);
-
   if (index < 0) {
     return 1;
   }
@@ -179,16 +177,15 @@ int unlockHelper (unsigned int lock) {
 }
 
 int thread_unlock (unsigned int lock) {
+  if(!inited){return -1;}
   interrupt_disable();
   int temp = unlockHelper(lock);
   interrupt_enable();
   return temp;
 }
 
-
-
-
 int thread_wait (unsigned int lock, unsigned int cond) {
+  if(!inited){return -1;}
   interrupt_disable();
   int index = findLock(lock);
   if (index < 0){
@@ -214,6 +211,7 @@ int thread_wait (unsigned int lock, unsigned int cond) {
 }
 
 int thread_signal (unsigned int lock, unsigned int cond) {
+  if(!inited){return -1;}
   interrupt_disable();
   int index = findLock(lock);
   if (index < 0){
@@ -233,30 +231,46 @@ int thread_signal (unsigned int lock, unsigned int cond) {
     locks[index].condMap.find(cond)->second.erase(locks[index].condMap.find(cond)->second.begin());
     
     locks[index].busy = true;
-    locks[index].currentOwner = popped;
+    //locks[index].currentOwner = popped;
     readyQueue.insert(readyQueue.end(), popped);
   }
   interrupt_enable();
   return 0;
 }
 
-
-
-
-
-
 int thread_broadcast (unsigned int lock, unsigned int cond) {
-  
-
+  if(!inited){return -1;}
+  interrupt_disable();
+  int index = findLock(lock);
+  if (index < 0){
+    return 1;
+  } 
+  else {
+    auto iter = locks[index].condMap.find(cond);
+    if (iter == locks[index].condMap.end()){
+      interrupt_enable();
+      return -1;
+    }
+    if(locks[index].condMap.find(cond)->second.empty()) {
+      interrupt_enable();
+      return 0;
+    }
+    while(!locks[index].condMap.find(cond)->second.empty()) {
+      ucontext_t* popped = locks[index].condMap.find(cond)->second[0];
+      locks[index].condMap.find(cond)->second.erase(locks[index].condMap.find(cond)->second.begin());
+      if(!locks[index].busy) {
+	locks[index].busy = true;
+	locks[index].currentOwner = popped;
+      }
+      readyQueue.insert(readyQueue.end(), popped);
+    }
+  }
+  interrupt_enable();
+  return 0; 
 }
 
-
-
 int thread_yield(void) {
-
-  //  cout << "got to yield \n";
-  //Check that there is another thread to run
-
+  if(!inited){return -1;}
   interrupt_disable();
   ucontext* next = pop();
   if(next == NULL) {
@@ -268,7 +282,6 @@ int thread_yield(void) {
     auto iter = readyQueue.insert(readyQueue.end(), prev);
     swapcontext(prev, current);
   }
-  interrupt_enable();
-  
+  interrupt_enable();  
   return 0;
 }
