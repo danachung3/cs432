@@ -96,9 +96,7 @@ int thread_libinit (thread_startfunc_t func, void *arg) {
     delete current;
     interrupt_enable();
     return -1;
-  }
-
-   
+  }   
   makecontext(current, (void (*) ()) start_thread, 2, func, arg);
   setcontext(current);
 }
@@ -120,12 +118,19 @@ int thread_create (thread_startfunc_t func, void *arg) {
     newThread->uc_stack.ss_size = STACK_SIZE;
     newThread->uc_stack.ss_flags = 0;
     newThread->uc_link = NULL;
-  } catch(bad_alloc) {
+  } catch(bad_alloc){
     delete stack;
-    delete newThread;
+    delete newThread; 
     interrupt_enable();
     return -1;
+  }catch(bad_exception) {
+    delete stack;
+    delete newThread;
+    //    cout<< "reached overflow error";
+    interrupt_enable();
+    return -1; 
   }
+  
 
   makecontext(newThread, (void(*)()) start_thread, 2, func, arg);
   auto iter = readyQueue.insert(readyQueue.end(), newThread);
@@ -308,7 +313,8 @@ int thread_yield(void) {
   interrupt_disable();
   ucontext* next = pop();
   if(next == NULL) {
-    setcontext(current);
+    interrupt_enable();
+    return 0;
   }
   else {
     ucontext* prev = current;

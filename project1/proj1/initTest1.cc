@@ -21,27 +21,27 @@ void thread1(void* arg) {
 
 
 void startHelper() {
-  if (thread_libinit((thread_startfunc_t ) startHelper, (void *) 5) = -1){
-    cout << "Thread libinit failed";
+  if (thread_libinit((thread_startfunc_t ) startHelper, (void *) 5) == -1){
+    cout << "Thread libinit failed\n";
   };
 }
 
 int main(int argc, char** argv) {
 
-  if (thread_create((thread_startfunc_t ) thread1, (void *) 1) = -1){
-    cout << "Thread Create Failed";
-  };
-  if (thread_lock(lock) = -1) {
-    cout << "Thread Lock failed"
+  if (thread_create((thread_startfunc_t ) thread1, (void *) 1) == -1){
+    cout << "Thread Create Failed\n";
   }
-  if (thread_unlock(lock) = -1) {
-    cout << "Thread Unlock failed"
+  if (thread_lock(lock) == -1) {
+    cout << "Thread Lock failed\n";
   }
-  if (thread_wait(lock, cond) = -1) {
-    cout << "Thread wait failed"
+  if (thread_unlock(lock) == -1) {
+    cout << "Thread Unlock failed\n";
   }
-  if (thread_signal(lock, cond) = -1) {
-    cout << "Thread wait failed"
+  if (thread_wait(lock, cond) == -1) {
+    cout << "Thread wait failed\n";
+  }
+  if (thread_signal(lock, cond) == -1) {
+    cout << "Thread wait failed\n";
   }
 
   thread_libinit((thread_startfunc_t ) startHelper, (void *) 5);
