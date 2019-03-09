@@ -43,6 +43,14 @@ void thread2(void* arg) {
   shared = 0;
   thread_signal(lock, sig);
 
+
+  if (thread_signal(lock, sig2) == 0) {
+    cout << "RETURN ZERO \n";
+  }
+
+
+
+  
   thread_unlock(lock);
   cout<< "Thread 2 out\n";
 }
