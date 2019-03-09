@@ -259,6 +259,7 @@ int thread_signal (unsigned int lock, unsigned int cond) {
   interrupt_disable();
   int index = findLock(lock);
   if (index < 0){
+    interrupt_enable();
     return 0;
   }
   //  else if (locks[index].currentOwner != current) {
@@ -291,13 +292,14 @@ int thread_broadcast (unsigned int lock, unsigned int cond) {
   interrupt_disable();
   int index = findLock(lock);
   if (index < 0){
-    return -1;
+    interrupt_enable();
+    return 0;
   } 
   else {
     auto iter = locks[index].condMap.find(cond);
     if (iter == locks[index].condMap.end()){
       interrupt_enable();
-      return -1;
+      return 0;
     }
     if(locks[index].condMap.find(cond)->second.empty()) {
       interrupt_enable();
