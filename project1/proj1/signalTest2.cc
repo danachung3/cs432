@@ -14,9 +14,7 @@ void thread1(void* arg) {
   cout<< "Thread 1 recieved: " << num << "\n";
   // thread_lock(lock);
   while(shared > 5) {
-    if (thread_wait(lock, sig) == -1){
-      cout << "Thread wait should fail";
-    }
+    thread_wait(lock, sig);
   }
   cout<< "Thread 1 middle\n";
   //  thread_unlock(lock);
@@ -25,20 +23,46 @@ void thread1(void* arg) {
 
 void thread2(void* arg) {
   int* num = (int*) arg;
-  cout<< "Thread 2 recieved: " << num << "\n";
-  //  thread_lock(lock);
-  cout<< "Thread 2 middle\n";
+  thread_lock(lock);
 
   shared = 0;
   thread_signal(lock, sig);
 
   // thread_unlock(lock);
-  cout<< "Thread 2 out\n";
+  cout << "Signaled" << endl;
+
+  thread_unlock(lock);
+}
+
+
+void thread3(void* arg) {
+  thread_lock(lock);
+  thread_broadcast(lock, sig);
+
+  cout << "Broadcast" << endl;
+  thread_unlock(lock);
 }
 
 void startHelper() {
   thread_create((thread_startfunc_t ) thread1, (void *) 1);
+
+
+  thread_create((thread_startfunc_t ) thread1, (void *) 1);
+  thread_create((thread_startfunc_t ) thread1, (void *) 1);
+  thread_create((thread_startfunc_t ) thread1, (void *) 1);
+  thread_create((thread_startfunc_t ) thread1, (void *) 1);
+  
+  
   thread_create((thread_startfunc_t ) thread2, (void *) 2);
+
+
+  thread_create((thread_startfunc_t ) thread3, (void *) 2);
+
+
+  
+
+
+
 }
 
 int main(int argc, char** argv) {
