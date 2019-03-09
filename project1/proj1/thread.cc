@@ -245,7 +245,6 @@ int thread_wait (unsigned int lock, unsigned int cond) {
     else {
       locks[index].condMap.find(cond)->second.insert(locks[index].condMap.find(cond)->second.end(), current);
     }
-
     unlockHelper(lock);
     swap();
     lockHelper(lock);
@@ -262,10 +261,10 @@ int thread_signal (unsigned int lock, unsigned int cond) {
     interrupt_enable();
     return 0;
   }
-  //  else if (locks[index].currentOwner != current) {
-  //  interrupt_enable();
-  //  return -1;
-  //}
+  /**else if (locks[index].currentOwner != current) {
+    interrupt_enable();
+    return -1;
+    }*/
   else {
     auto iter = locks[index].condMap.find(cond);
     if (iter == locks[index].condMap.end()){
