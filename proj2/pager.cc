@@ -13,7 +13,7 @@ struct vpage_t {
   bool dirty;
   bool zero;
   bool resident;
-  unsigned int disk_block;
+  int disk_block;
   bool read;
   bool write;
 };
@@ -57,10 +57,12 @@ extern void vm_create(pid_t pid) {
 
 extern void * vm_extend(){
   //Make anothe virtual page
-
-  //if there is enough available disk blocks to hold all virtual pages 
-
-  struct vpage_t pte = {0, 0, 0, 0, 0, 0};
+  if(disk.size() == 0) {
+    return NULL;
+  }
+  int diskLoc = disk.top();
+  disk.pop();
+  struct vpage_t pte = {0, 0, 0, diskLoc, 0, 0};
   currentProc.vPages.insert(currentProc.vPages.end(), pte); 
   
 
@@ -69,18 +71,21 @@ extern void * vm_extend(){
 };
 
 extern int vm_fault(void *addr, bool write_flag){
-
+  return 1;
 
 
 };
 
-extern void vm_switch(pid_t pid){};
+extern void vm_switch(pid_t pid){
+  currentProc = processes.at(pid);
+  page_table_base_register = &currentProc.pageTable;
+};
 
 extern void vm_destroy(){
-
+  return;
 
 
 };
 
 
-extern int vm_syslog(void *message, unsigned int len){};
+extern int vm_syslog(void *message, unsigned int len){return 1;};
