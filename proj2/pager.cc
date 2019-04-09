@@ -23,16 +23,22 @@ struct process_t {
 };
 
 map<pid_t, process_t> processes;
-stack<unsigned int> physicalMem;
-stack<unsigned int> disk; 
+stack<int> physicalMem;
+stack<int> disk; 
 process_t currentProc;
 
 
 extern void vm_init(unsigned int memory_pages, unsigned int disk_blocks) {
-  physicalMem = new unsigned int [memory_pages];
-  disk = new unsigned int [disk_blocks];
-  //  map<pid_t, process_t> processes;
+  //physicalMem = new stack<int>(memory_pages);
+  //disk = new int [disk_blocks];
+    map<pid_t, process_t> processes;
 }
 
 
 
+extern void vm_create(pid_t pid);
+extern void vm_switch(pid_t pid);
+extern int vm_fault(void *addr, bool write_flag);
+extern void vm_destroy();
+extern void * vm_extend();
+extern int vm_syslog(void *message, unsigned int len);
