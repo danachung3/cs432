@@ -29,14 +29,27 @@ process_t currentProc;
 
 
 extern void vm_init(unsigned int memory_pages, unsigned int disk_blocks) {
+  //What do we actually need to do here?
+  
   //physicalMem = new stack<int>(memory_pages);
   //disk = new int [disk_blocks];
-    map<pid_t, process_t> processes;
+  // map<pid_t, process_t> processes;
+}
+
+extern void vm_create(pid_t pid) {
+  page_table_t pt;
+  vector<vpage_t> v;
+  struct process_t newProcess = {pid, pt, v};
+  if(current == NULL) {
+    current = newProcess;
+    //Set page_table_base_register to be pt
+  }
+  processes.insert(pair<pid_t, process_t>(pid, newProcess));
 }
 
 
 
-extern void vm_create(pid_t pid);
+
 extern void vm_switch(pid_t pid);
 extern int vm_fault(void *addr, bool write_flag);
 extern void vm_destroy();
