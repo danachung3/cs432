@@ -1,6 +1,5 @@
 #include <iostream>
 #include <fstream>
-//#include "vm_pager.h"
 #include <vector>
 #include <tuple>
 #include <map>
@@ -77,7 +76,7 @@ extern void vm_switch(pid_t pid){
 
 extern void vm_destroy(){
   for(int i = 0; i < currentProc.vPages.size(); i++) {
-    vpage_t temp = currentProc.vPage.at(i);
+    vpage_t temp = currentProc.vPages.at(i);
     if(temp.resident) {
       //add physical mem back
     }
