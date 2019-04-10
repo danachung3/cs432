@@ -75,18 +75,70 @@ extern void * vm_extend(){
   pte->read = 0;
   pte->write = 0;
 
-  currentProc.vPages.insert(currentProc.vPages.end(), pte);
+  currentProc.vPages.insert((currentProc.vPages.end()), *pte);
 
-  int address = VM_ARENA_BASEADDR + currentProc.vPages.size() * VM_PAGESIZE
-
+  int address = VM_ARENA_BASEADDR + currentProc.vPages.size() * VM_PAGESIZE;
   return address;
 }
 
 extern int vm_fault(void *addr, bool write_flag){
   //If the physical memory process has not been set
   //define pm_physmem
-  memset((char*) pm_physmem + ppage * VM_PAGESIZE, 0, VM_PAGESIZE);
 
+  //assuming addr is the address of the vpage_t
+  //get index to find page_table_t entry, not sure if thats right? 
+  int index = (addr - VM_ARENA_BASEADDR) / VM_PAGESIZE; 
+
+  page_table_entry_t page_table_entry = currentProc.pageTable.ptes[index]; 
+  vpage_t current_vpage = currentProc.vPages[index];
+
+  //if address to invalid page
+  if (){
+    return -1;
+  }
+  
+
+  //if virtual page does not have a physical page
+  if (page_table_entry.ppage = -1){
+    int pm_physmem = physicalMem.top();
+    physicalMem.pop();
+    
+    memset((char*) pm_physmem + ppage * VM_PAGESIZE, 0, VM_PAGESIZE);
+    page_table_entry.ppage = pm_physmem;
+
+    current_vpage.resident = 1; 
+    current_vpage.zero = 0; 
+  }
+
+
+  //if access is read
+  if (write_flag = 0){
+    if (page_table_entry.read_enable = 0){
+      //do stuff
+    
+      page_table_entry.read_enable = 1;
+      current_vpage.read = 1;
+
+      return 0; 
+    }
+  }
+
+  //if access is write 
+  if (write_flag){
+    if ((page_table_entry.read_enable = 0) | (page_table_entry.write_enable = 0)){
+      // do stuff
+
+      page_table_entry.read_enable = 1;
+      page_table_entry.write_enable = 1;
+      current_vpage.read = 1;
+      current_vpage.write = 1;
+      current_vpage.dirty = 1;
+
+      return 0; 
+      
+    }
+  }
+  
   return 1;
 
 
@@ -103,11 +155,12 @@ extern void vm_destroy(){
   for(int i = 0; i < currentProc.vPages.size(); i++) {
     vpage_t temp = currentProc.vPages.at(i);
     if(temp.resident) {
-      //add physical mem back
+      //add physical mem back, doesnt matter what integer 
+      physicalMem.push(temp.disk_block);
     }
     disk.push(temp.disk_block);
 
-    //free process???
+    // free or delete vpage 
   }
 
 
