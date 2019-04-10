@@ -23,7 +23,7 @@ struct process_t {
   vector<vpage_t> vPages;
 };
 
-map<pid_t, process_t> processes;
+map<pid_t, process_t*> processes;
 stack<int> physicalMem;
 stack<int> disk;
 process_t currentProc;
@@ -42,22 +42,22 @@ extern void vm_init(unsigned int memory_pages, unsigned int disk_blocks) {
 extern void vm_create(pid_t pid) {
   page_table_t pt;
   vector<vpage_t> v;
-  struct process_t *newProcess = new process_t
-  newProcess-> pid_t = pid;
-  newProcess-> page_table_t = pt;
-  newProcess-> vpage_t = v;
+  struct process_t *newProcess = new process_t;
+  newProcess->processID = pid;
+  newProcess->pageTable = pt;
+  newProcess->vPages= v;
 
 //  if(currentProc.processID == NULL) {
 //     currentProc = newProcess;
 //     page_table_base_register = &pt;
 //  }
-  for(int i = 0; i < pt.length() ; i++){
-    pt[i].ppage = -1;
-    pt[i].r = 0;
-    pt[i].w = 0;
+  for(int i = 0; i < VM_ARENA_SIZE/VM_PAGESIZE ; i++){
+    pt.ptes[i].ppage = -1;
+    pt.ptes[i].read_enable = 0;
+    pt.ptes[i].write_enable = 0;
   }
 
-  processes.insert(pair<pid_t, process_t>(pid, newProcess));
+  processes.insert(pair<pid_t, process_t*>(pid, newProcess));
 }
 
 extern void * vm_extend(){
@@ -67,13 +67,13 @@ extern void * vm_extend(){
   int diskLoc = disk.top();
   disk.pop();
 
-  struct vpage_t *pte = new vpage_t
-  pt->dirty=0;
-  pt->zero=1;
-  pt->resident=0;
-  pt->disk_block = diskLoc;
-  pt->read = 0;
-  pt->write = 0;
+  struct vpage_t *pte = new vpage_t;
+  pte->dirty=0;
+  pte->zero=1;
+  pte->resident=0;
+  pte->disk_block = diskLoc;
+  pte->read = 0;
+  pte->write = 0;
 
   currentProc.vPages.insert(currentProc.vPages.end(), pte);
 
