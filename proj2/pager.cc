@@ -36,9 +36,6 @@ extern void vm_init(unsigned int memory_pages, unsigned int disk_blocks) {
   for(int i = 0; i < disk_blocks; i++){
     disk.push(i); 
   }
-  
-  // map<pid_t, process_t> processes;
-
   struct process_t nil = {NULL, NULL, NULL}; 
   currentProc = nil; 
 }
@@ -49,14 +46,12 @@ extern void vm_create(pid_t pid) {
   struct process_t newProcess = {pid, pt, v};
   if(currentProc.processID == NULL) {
      currentProc = newProcess;
-    //Set page_table_base_register to be pt
      page_table_base_register = &pt; 
   }
   processes.insert(pair<pid_t, process_t>(pid, newProcess));
 }
 
 extern void * vm_extend(){
-  //Make anothe virtual page
   if(disk.size() == 0) {
     return NULL;
   }
@@ -64,28 +59,36 @@ extern void * vm_extend(){
   disk.pop();
   struct vpage_t pte = {0, 0, 0, diskLoc, 0, 0};
   currentProc.vPages.insert(currentProc.vPages.end(), pte); 
-  
-
-  //else return NULL
-
-};
+  return &currentProc.vPages.at(currentProc.vPages.size() - 1);
+}
 
 extern int vm_fault(void *addr, bool write_flag){
   return 1;
 
 
-};
+}
 
 extern void vm_switch(pid_t pid){
   currentProc = processes.at(pid);
   page_table_base_register = &currentProc.pageTable;
-};
-
-extern void vm_destroy(){
   return;
 
+}
 
-};
+extern void vm_destroy(){
+  for(int i = 0; i < currentProc.vPages.size(); i++) {
+    vpage_t temp = currentProc.vPage.at(i);
+    if(temp.resident) {
+      //add physical mem back
+    }
+    disk.push(temp.disk_block);
+    
+
+  }
+  
+
+  return;
+}
 
 
-extern int vm_syslog(void *message, unsigned int len){return 1;};
+extern int vm_syslog(void *message, unsigned int len){return 1;}
