@@ -62,6 +62,8 @@ extern void * vm_extend(){
 }
 
 extern int vm_fault(void *addr, bool write_flag){
+
+
   return 1;
 
 
