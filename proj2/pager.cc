@@ -25,28 +25,38 @@ struct process_t {
 
 map<pid_t, process_t> processes;
 stack<int> physicalMem;
-stack<int> disk; 
+stack<int> disk;
 process_t currentProc;
 
 extern void vm_init(unsigned int memory_pages, unsigned int disk_blocks) {
   for(int i = 0; i < memory_pages; i++){
-    physicalMem.push(i); 
+    physicalMem.push(i);
   }
   for(int i = 0; i < disk_blocks; i++){
-    disk.push(i); 
+    disk.push(i);
   }
-  struct process_t nil = {NULL, NULL, NULL}; 
-  currentProc = nil; 
+//  struct process_t nil = {NULL, NULL, NULL};
+//  currentProc = nil;
 }
 
 extern void vm_create(pid_t pid) {
   page_table_t pt;
   vector<vpage_t> v;
-  struct process_t newProcess = {pid, pt, v};
-  if(currentProc.processID == NULL) {
-     currentProc = newProcess;
-     page_table_base_register = &pt; 
+  struct process_t *newProcess = new process_t
+  newProcess-> pid_t = pid;
+  newProcess-> page_table_t = pt;
+  newProcess-> vpage_t = v;
+
+//  if(currentProc.processID == NULL) {
+//     currentProc = newProcess;
+//     page_table_base_register = &pt;
+//  }
+  for(int i = 0; i < pt.length() ; i++){
+    pt[i].ppage = -1;
+    pt[i].r = 0;
+    pt[i].w = 0;
   }
+
   processes.insert(pair<pid_t, process_t>(pid, newProcess));
 }
 
@@ -56,13 +66,26 @@ extern void * vm_extend(){
   }
   int diskLoc = disk.top();
   disk.pop();
-  struct vpage_t pte = {0, 0, 0, diskLoc, 0, 0};
-  currentProc.vPages.insert(currentProc.vPages.end(), pte); 
-  return &currentProc.vPages.at(currentProc.vPages.size() - 1);
+
+  struct vpage_t *pte = new vpage_t
+  pt->dirty=0;
+  pt->zero=1;
+  pt->resident=0;
+  pt->disk_block = diskLoc;
+  pt->read = 0;
+  pt->write = 0;
+
+  currentProc.vPages.insert(currentProc.vPages.end(), pte);
+
+  int address = VM_ARENA_BASEADDR + currentProc.vPages.size() * VM_PAGESIZE
+
+  return address;
 }
 
 extern int vm_fault(void *addr, bool write_flag){
-
+  //If the physical memory process has not been set
+  //define pm_physmem
+  memset((char*) pm_physmem + ppage * VM_PAGESIZE, 0, VM_PAGESIZE);
 
   return 1;
 
@@ -83,10 +106,10 @@ extern void vm_destroy(){
       //add physical mem back
     }
     disk.push(temp.disk_block);
-    
 
+    //free process???
   }
-  
+
 
   return;
 }
