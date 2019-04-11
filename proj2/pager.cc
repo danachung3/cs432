@@ -23,7 +23,7 @@ struct vpage_t {
 struct process_t {
   pid_t processID;
   page_table_t pageTable;
-  vector<vpage_t> vPages;
+  vector<vpage_t*> vPages;
 };
 
 map<pid_t, process_t*> processes;
@@ -47,17 +47,17 @@ extern void vm_create(pid_t pid) {
   vector<vpage_t> v;
   struct process_t *newProcess = new process_t;
   newProcess->processID = pid;
-  newProcess->pageTable = pt;
-  newProcess->vPages= v;
+  // newProcess->pageTable = pt;
+  //newProcess->vPages= v;
 
 //  if(currentProc.processID == NULL) {
 //     currentProc = newProcess;
 //     page_table_base_register = &pt;
 //  }
   for(int i = 0; i < VM_ARENA_SIZE/VM_PAGESIZE ; i++){
-    pt.ptes[i].ppage = -1;
-    pt.ptes[i].read_enable = 0;
-    pt.ptes[i].write_enable = 0;
+    newProcess->pageTable.ptes[i].ppage = -1;
+    newProcess->pageTable.ptes[i].read_enable = 0;
+    newProcess->pageTable.ptes[i].write_enable = 0;
   }
 
   processes.insert(pair<pid_t, process_t*>(pid, newProcess));
@@ -78,7 +78,7 @@ extern void * vm_extend(){
   pte->read = 0;
   pte->write = 0;
 
-  currentProc.vPages.insert((currentProc.vPages.end()), *pte);
+  currentProc.vPages.insert((currentProc.vPages.end()), pte);
 
   void* address = (void *)VM_ARENA_BASEADDR + currentProc.vPages.size() * VM_PAGESIZE;
   return address;
@@ -90,11 +90,11 @@ extern int vm_fault(void *addr, bool write_flag){
 
   //assuming addr is the address of the vpage_t
   //get index to find page_table_t entry, not sure if thats right?
-  int index = 0;
-
+  //  int index = (addr - VM_ARENA_BASEADDR) / VM_PAGESIZE;
+  unsigned int index = (unsigned int)((unsigned long) addr - (unsigned long)VM_ARENA_BASEADDR) / VM_PAGESIZE;
   //int index = ((int)addr - (int)VM_ARENA_BASEADDR) / (int)VM_PAGESIZE;
   page_table_entry_t page_table_entry = currentProc.pageTable.ptes[index]; 
-  vpage_t current_vpage = currentProc.vPages[index];
+  vpage_t* current_vpage = currentProc.vPages[index];
   int i = 0;
   //if address to invalid page
   /**if (i){
@@ -110,8 +110,8 @@ extern int vm_fault(void *addr, bool write_flag){
     memset((char*) pm_physmem + ppage * VM_PAGESIZE, 0, VM_PAGESIZE);
     page_table_entry.ppage = ppage;
 
-    current_vpage.resident = 1; 
-    current_vpage.zero = 0; 
+    current_vpage->resident = 1; 
+    current_vpage->zero = 0; 
   }
 
 
@@ -121,7 +121,7 @@ extern int vm_fault(void *addr, bool write_flag){
       //do stuff
     
       page_table_entry.read_enable = 1;
-      current_vpage.read = 1;
+      current_vpage->read = 1;
 
       return 0; 
     }
@@ -134,16 +134,16 @@ extern int vm_fault(void *addr, bool write_flag){
 
       page_table_entry.read_enable = 1;
       page_table_entry.write_enable = 1;
-      current_vpage.read = 1;
-      current_vpage.write = 1;
-      current_vpage.dirty = 1;
+      current_vpage->read = 1;
+      current_vpage->write = 1;
+      current_vpage->dirty = 1;
 
       return 0; 
       
     }
   }
   
-  return -11;
+  return -1;
 
 
 }
@@ -155,9 +155,11 @@ extern void vm_switch(pid_t pid){
 
 }
 
+extern void vm_destroy(){ return;}
+/**
 extern void vm_destroy(){
-  for(int i = 0; i < currentProc.vPages.size(); i++) {
-    vpage_t temp = currentProc.vPages.at(i);
+  for(int i = 0; i < currentProc->vPages.size(); i++) {
+    vpage_t* temp = currentProc->vPages.at(i);
     if(temp.resident) {
       //add physical mem back, doesnt matter what integer 
       physicalMem.push(temp.disk_block);
@@ -169,7 +171,7 @@ extern void vm_destroy(){
 
 
   return;
-}
+  }*/
 
 
 extern int vm_syslog(void *message, unsigned int len){return 1;}
