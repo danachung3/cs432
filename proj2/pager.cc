@@ -1,10 +1,13 @@
 #include <iostream>
+#include <string.h>
+#include <stdio.h>
 #include <fstream>
 #include <vector>
 #include <tuple>
 #include <map>
 #include <stack>
 #include "vm_pager.h"
+#include <cstdint>
 
 using namespace std;
 
@@ -77,7 +80,7 @@ extern void * vm_extend(){
 
   currentProc.vPages.insert((currentProc.vPages.end()), *pte);
 
-  int address = VM_ARENA_BASEADDR + currentProc.vPages.size() * VM_PAGESIZE;
+  void* address = (void *)VM_ARENA_BASEADDR + currentProc.vPages.size() * VM_PAGESIZE;
   return address;
 }
 
@@ -86,25 +89,26 @@ extern int vm_fault(void *addr, bool write_flag){
   //define pm_physmem
 
   //assuming addr is the address of the vpage_t
-  //get index to find page_table_t entry, not sure if thats right? 
-  int index = (addr - VM_ARENA_BASEADDR) / VM_PAGESIZE; 
+  //get index to find page_table_t entry, not sure if thats right?
+  int index = 0;
 
+  //int index = ((int)addr - (int)VM_ARENA_BASEADDR) / (int)VM_PAGESIZE;
   page_table_entry_t page_table_entry = currentProc.pageTable.ptes[index]; 
   vpage_t current_vpage = currentProc.vPages[index];
-
+  int i = 0;
   //if address to invalid page
-  if (){
+  /**if (i){
     return -1;
-  }
+    }*/
   
 
   //if virtual page does not have a physical page
   if (page_table_entry.ppage = -1){
-    int pm_physmem = physicalMem.top();
+    int ppage = physicalMem.top();
     physicalMem.pop();
     
     memset((char*) pm_physmem + ppage * VM_PAGESIZE, 0, VM_PAGESIZE);
-    page_table_entry.ppage = pm_physmem;
+    page_table_entry.ppage = ppage;
 
     current_vpage.resident = 1; 
     current_vpage.zero = 0; 
@@ -139,13 +143,13 @@ extern int vm_fault(void *addr, bool write_flag){
     }
   }
   
-  return 1;
+  return -11;
 
 
 }
 
 extern void vm_switch(pid_t pid){
-  currentProc = processes.at(pid);
+  currentProc = *processes.at(pid);
   page_table_base_register = &currentProc.pageTable;
   return;
 
