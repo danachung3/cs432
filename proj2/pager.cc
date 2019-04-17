@@ -6,6 +6,7 @@
 #include <tuple>
 #include <map>
 #include <stack>
+#include <queue>
 #include "vm_pager.h"
 #include <cstdint>
 
@@ -25,7 +26,8 @@ struct process_t {
   pid_t processID;
   page_table_t pageTable;
   vector<vpage_t*> vPages;
-  vector<vpage_t*> clock;
+  queue<tuple<int,vpage_t*>> clock;
+  //  vector<vpage_t*> clock;
 };
 
 map<pid_t, process_t*> processes;
@@ -85,17 +87,8 @@ extern int vm_fault(void *addr, bool write_flag){
   vpage_t* current_vpage = currentProc.vPages[index];
   int i = 0;
 
-  //if address to invalid page
-  /**if (i){
-    return -1;
-    }*/
-
-
   //if virtual page does not have a physical page
-  if (page_table_entry.ppage == 10000){
-
-    
-    
+  if (page_table_entry.ppage == 10000){    
     if (physicalMem.empty()){
       //no free space in physical mem, need to evict
 
@@ -130,7 +123,9 @@ extern int vm_fault(void *addr, bool write_flag){
       currentProc.pageTable.ptes[index].ppage = ppage;
       currentProc.vPages[index]->resident = 1;
       currentProc.vPages[index]->zero = 0;
-      currentProc.clock.insert((currentProc.clock.end()), currentProc.vPages[index]);
+      tuple<int,vpage_t*> temp = make_tuple(ppage, currentProc.pageTable.ptes[index]);
+      currentProc.clock.push(temp);
+	//insert((currentProc.clock.end()), currentProc.vPages[index]);
     }
   }
 
