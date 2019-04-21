@@ -92,24 +92,35 @@ extern int vm_fault(void *addr, bool write_flag){
     if (physicalMem.empty()){
       //no free space in physical mem, need to evict
 
-      while (currentProc.clock.at(0)->reference == 1){
-	currentProc.clock.at(0)->reference = 0;
-	currentProc.clock.insert((currentProc.clock.end()), currentProc.clock.at(0));
-	currentProc.clock.erase(currentProc.clock.begin());
+      while (get<1>(currentProc.clock.front())->reference == 1){
+	get<1>(currentProc.clock.front())->reference = 0;
+	currentProc.clock.push(currentProc.clock.front());
+	currentProc.clock.pop();
       }
    
 	//reference bit is zero, evict it
-      if (currentProc.clock.at(0)->dirty){
-	  //write to disk, access diskBlock int, pageTable index of virtual page  
-	  //disk_write(currentProc.clock.at(0)->diskBlock, currentProc.pageTable[
+      if (get<1>(currentProc.clock.front())->dirty){
+	disk_write(get<1>(currentProc.clock.front())->disk_block, get<0>(currentProc.clock.front()));
+	//write to disk, access diskBlock int, pageTable index of virtual page  
+	//disk_write(currentProc.clock.at(0)->diskBlock, currentProc.pageTable[
       }
-      else{
-	  currentProc.clock.at(0)->resident = 0;
+	//else{
+	//get<1>(currentProc.clock.front())->reference = 0;
+	//	  currentProc.clock.at(0)->resident = 0;
 	  //need to find index... and set pppage to -1 or 10000 
-	  currentProc.pageTable.ptes[index];
-	  
-	  
-      }
+	  //currentProc.pageTable.ptes[index];
+      int evict = get<0>(currentProc.clock.front());
+      
+      tuple<int, vpage_t*> temp = make_tuple(evict, currentProc.vPages[index]);
+      currentProc.clock.push(temp);
+
+      get<1>(currentProc.clock.front())->resident = 0;
+      currentProc.pageTable.ptes[index].ppage = evict;
+      //      currentProc.pageTable.ptes[evict].ppage = 10000;
+      currentProc.clock.pop();	  
+      
+
+      //}
 
       
     }
@@ -123,7 +134,7 @@ extern int vm_fault(void *addr, bool write_flag){
       currentProc.pageTable.ptes[index].ppage = ppage;
       currentProc.vPages[index]->resident = 1;
       currentProc.vPages[index]->zero = 0;
-      tuple<int,vpage_t*> temp = make_tuple(ppage, currentProc.pageTable.ptes[index]);
+      tuple<int,vpage_t*> temp = make_tuple(ppage, currentProc.vPages[index]);
       currentProc.clock.push(temp);
 	//insert((currentProc.clock.end()), currentProc.vPages[index]);
     }
