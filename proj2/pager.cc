@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string.h>
 #include <stdio.h>
+#include <math.h>
 #include <fstream>
 #include <vector>
 #include <tuple>
@@ -193,14 +194,24 @@ extern void vm_destroy(){
 
 
 extern int vm_syslog(void *message, unsigned int len){
-  /** if(len == 0) { //Or invalid address
-    return -1;
-  }
+  //if(len == 0) { //Or invalid address
+  //return -1;
+  //}
   string s = "";
-  for(unsigned int i = 0; i < len; i++) {
-    s.append((string) message);
-    message += i;
+  //unsigned int index = (unsigned int)((unsigned long) message - (unsigned long)VM_ARENA_BASEADDR) / VM_PAGESIZE;
+  while(!len == 0) {
+    unsigned int index = floor((unsigned long) message / VM_PAGESIZE);
+    unsigned int offset = (unsigned int)((unsigned long)message % (unsigned int)VM_PAGESIZE);
+    unsigned int temp = VM_PAGESIZE - offset;
+    while(offset - VM_PAGESIZE != 0) { 
+      unsigned int paddress =  (currentProc.pageTable.ptes[index].ppage * VM_PAGESIZE) + offset;
+      s += ((char *)pm_physmem)[paddress];
+      offset++;
+      len--;
+    }
+    message += temp;
+
   }
-  cout << "syslog \t\t\t" << s << endl;*/
+  cout << "syslog \t\t\t" << s << endl;
   return 0;
 }
