@@ -158,11 +158,10 @@ extern int vm_fault(void *addr, bool write_flag){
       currentProc.vPages[index]->write = 1;
       currentProc.vPages[index]->dirty = 1;
       currentProc.vPages[index]->reference = 1;
-      // set zero to 0
+      currentProc.vPages[index]->zero = 0;
       return 0; 
     }
   }
-
   return -1;
 }
 
