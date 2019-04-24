@@ -110,7 +110,6 @@ extern int vm_fault(void *addr, bool write_flag){
       //If its dirty, write to disk
       if (get<1>(currentProc.clock.front())->dirty){
 	//	disk_write(get<1>(currentProc.clock.front())->disk_block, get<0>(currentProc.clock.front()));
-
 	disk_write(get<1>(currentProc.clock.front())->disk_block, currentProc.pageTable.ptes[get<0>(currentProc.clock.front())].ppage);
 	get<1>(currentProc.clock.front())->dirty = 0;
 	get<1>(currentProc.clock.front())->read = 0;
@@ -125,7 +124,7 @@ extern int vm_fault(void *addr, bool write_flag){
       currentProc.pageTable.ptes[evictIndex].ppage = 10000;
       currentProc.pageTable.ptes[evictIndex].read_enable = 0;
       currentProc.pageTable.ptes[evictIndex].write_enable = 0;
-            
+      currentProc.clock.pop();
     }
     //Grabbing free memory
     int ppage = physicalMem.top();
@@ -135,7 +134,7 @@ extern int vm_fault(void *addr, bool write_flag){
     currentProc.vPages[index]->resident = 1;
     
     if(currentProc.vPages[index]->zero == 1) {
-      memset((char*) pm_physmem + ppage * VM_PAGESIZE, 0, VM_PAGESIZE);
+      memset((char*) pm_physmem + (ppage * VM_PAGESIZE), 0, VM_PAGESIZE);
     }
     else {
       disk_read(currentProc.vPages[index]->disk_block, currentProc.pageTable.ptes[index].ppage);
@@ -175,7 +174,6 @@ extern void vm_switch(pid_t pid){
   currentProc = *processes.at(pid);
   page_table_base_register = &currentProc.pageTable;
   return;
-
 }
 
 extern void vm_destroy(){
@@ -192,8 +190,6 @@ extern void vm_destroy(){
   while(!currentProc.clock.empty()) {
     currentProc.clock.pop();
   }
-
-
   return;
 }
 
