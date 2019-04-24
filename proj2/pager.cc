@@ -194,23 +194,29 @@ extern void vm_destroy(){
 
 
 extern int vm_syslog(void *message, unsigned int len){
-  //if(len == 0) { //Or invalid address
-  //return -1;
-  //}
+  if((unsigned long) message + len > (unsigned long)VM_ARENA_SIZE + (unsigned long)VM_ARENA_BASEADDR) { //Or invalid address
+      return -1;
+  }
   string s = "";
   //unsigned int index = (unsigned int)((unsigned long) message - (unsigned long)VM_ARENA_BASEADDR) / VM_PAGESIZE;
-  while(!len == 0) {
-    unsigned int index = floor((unsigned long) message / VM_PAGESIZE);
+  while(len > 0) {
+    unsigned int index = ((unsigned long) message - (unsigned long)VM_ARENA_BASEADDR) / (unsigned long) VM_PAGESIZE;
     unsigned int offset = (unsigned int)((unsigned long)message % (unsigned int)VM_PAGESIZE);
     unsigned int temp = VM_PAGESIZE - offset;
-    while(offset - VM_PAGESIZE != 0) { 
+    //    cout << "got here";
+    //cout << "First index: " << index << "\n";
+    //cout << "Offset: " << offset << "\n";
+    //cout << "Message Address: " << message << "\n";
+
+    while(offset - VM_PAGESIZE != 0 && len > 0) { 
       unsigned int paddress =  (currentProc.pageTable.ptes[index].ppage * VM_PAGESIZE) + offset;
       s += ((char *)pm_physmem)[paddress];
       offset++;
       len--;
+      //      cout << "ENDED A VIRTUAL PAGE";
     }
     message += temp;
-
+    //cout << "NOT HERE";
   }
   cout << "syslog \t\t\t" << s << endl;
   return 0;

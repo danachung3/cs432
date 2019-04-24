@@ -21,6 +21,7 @@ int main()
   c[4] = 'a';
   c[5] = 'r';
 
+  vm_syslog(c,6); 
   char *s;
   s = (char *) vm_extend();
   s[0] = 'h';
@@ -34,6 +35,7 @@ int main()
   char *t;
   t = (char *) vm_extend();
   t[0] = 'r';
+  vm_syslog(s,1);
 
   char *h;
   h = (char *) vm_extend();
