@@ -19,6 +19,7 @@ struct vpage_t {
   bool resident;
   int disk_block;
   bool read;
+  int proc;
   bool write;
   bool reference;
 };
@@ -27,16 +28,17 @@ struct process_t {
   pid_t processID;
   page_table_t pageTable;
   vector<vpage_t*> vPages;
-  queue<tuple<int,vpage_t*>> clock;
+  //  queue<tuple<int,vpage_t*>> clock;
 };
 
 
 //New clock outside process
-//queue<tuple<int,vpage_t*>> clock;
+
 map<pid_t, process_t*> processes;
 stack<int> physicalMem;
 stack<int> disk;
 process_t currentProc;
+queue<tuple<int,vpage_t*>> tickTock;
 
 extern void vm_init(unsigned int memory_pages, unsigned int disk_blocks) {
   for(int i = 0; i < memory_pages; i++){
@@ -68,6 +70,7 @@ extern void * vm_extend(){
 
   struct vpage_t *pte = new vpage_t;
   pte->dirty=0;
+  pte->proc = (int)currentProc.processID;
   pte->zero=1;
   pte->resident=0;
   pte->disk_block = diskLoc;
@@ -87,6 +90,7 @@ extern int vm_fault(void *addr, bool write_flag){
   //vpage_t* current_vpage = currentProc.vPages[index];
   //int i = 0;
 
+  pid_t cur = currentProc.processID;
   //if virtual page does not have a physical page
   if (page_table_entry.ppage == 10000){    
 
@@ -95,36 +99,36 @@ extern int vm_fault(void *addr, bool write_flag){
       //no free space in physical mem, need to evict
 
       //Loop through clock struct until reference bit of first element is 0
-      while (get<1>(currentProc.clock.front())->reference == 1){
-	get<1>(currentProc.clock.front())->reference = 0;
-	get<1>(currentProc.clock.front())->read = 0;
-	get<1>(currentProc.clock.front())->write = 0;
-	int i = get<0>(currentProc.clock.front());
+      while (get<1>(tickTock.front())->reference == 1){
+	get<1>(tickTock.front())->reference = 0;
+	get<1>(tickTock.front())->read = 0;
+	get<1>(tickTock.front())->write = 0;
+	int i = get<0>(tickTock.front());
 	currentProc.pageTable.ptes[i].read_enable = 0;
 	currentProc.pageTable.ptes[i].write_enable = 0;
 	
-	currentProc.clock.push(currentProc.clock.front());
-	currentProc.clock.pop();
+	tickTock.push(tickTock.front());
+	tickTock.pop();
       }
 
       //If its dirty, write to disk
-      if (get<1>(currentProc.clock.front())->dirty){
+      if (get<1>(tickTock.front())->dirty){
 	//	disk_write(get<1>(currentProc.clock.front())->disk_block, get<0>(currentProc.clock.front()));
-	disk_write(get<1>(currentProc.clock.front())->disk_block, currentProc.pageTable.ptes[get<0>(currentProc.clock.front())].ppage);
-	get<1>(currentProc.clock.front())->dirty = 0;
-	get<1>(currentProc.clock.front())->read = 0;
-	get<1>(currentProc.clock.front())->write = 0;
-	get<1>(currentProc.clock.front())->resident = 0;
-	get<1>(currentProc.clock.front())->reference = 0;
+	disk_write(get<1>(tickTock.front())->disk_block, currentProc.pageTable.ptes[get<0>(tickTock.front())].ppage);
+	get<1>(tickTock.front())->dirty = 0;
+	get<1>(tickTock.front())->read = 0;
+	get<1>(tickTock.front())->write = 0;
+	get<1>(tickTock.front())->resident = 0;
+	get<1>(tickTock.front())->reference = 0;
       }
 
       //Eviction stuff, check if this is ok
-      int evictIndex = get<0>(currentProc.clock.front());
+      int evictIndex = get<0>(tickTock.front());
       physicalMem.push(currentProc.pageTable.ptes[evictIndex].ppage);
       currentProc.pageTable.ptes[evictIndex].ppage = 10000;
       currentProc.pageTable.ptes[evictIndex].read_enable = 0;
       currentProc.pageTable.ptes[evictIndex].write_enable = 0;
-      currentProc.clock.pop();
+      tickTock.pop();
     }
     //Grabbing free memory
     int ppage = physicalMem.top();
@@ -140,7 +144,7 @@ extern int vm_fault(void *addr, bool write_flag){
       disk_read(currentProc.vPages[index]->disk_block, currentProc.pageTable.ptes[index].ppage);
     }
     tuple<int,vpage_t*> temp = make_tuple(index, currentProc.vPages[index]);
-    currentProc.clock.push(temp);
+    tickTock.push(temp);
   }
 
   //Maybe else if, do we want to make it readable right after giving new phys?
@@ -186,10 +190,18 @@ extern void vm_destroy(){
     free(currentProc.vPages[i]);
   }
 
-  //Check which process each thing the clock belongs to
-  while(!currentProc.clock.empty()) {
-    currentProc.clock.pop();
+  int i = tickTock.size();
+  while(i > 0) {
+    if(get<1>(tickTock.front())->proc == currentProc.processID) {
+      tickTock.pop();
+    }
+    else{
+      tickTock.push(tickTock.front());
+      tickTock.pop();
+    }
+    i--;
   }
+  
   return;
 }
 
