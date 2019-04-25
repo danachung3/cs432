@@ -42,6 +42,7 @@ extern void vm_init(unsigned int memory_pages, unsigned int disk_blocks) {
   for(int i = 0; i < memory_pages; i++){
     physicalMem.push(i);
   }
+  cout << disk_blocks;
   for(int i = 0; i < disk_blocks; i++){
     disk.push(i);
   }
