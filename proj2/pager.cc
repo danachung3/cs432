@@ -28,11 +28,7 @@ struct process_t {
   pid_t processID;
   page_table_t pageTable;
   vector<vpage_t*> vPages;
-  //  queue<tuple<int,vpage_t*>> clock;
 };
-
-
-//New clock outside process
 
 map<pid_t, process_t*> processes;
 stack<int> physicalMem;
@@ -207,7 +203,7 @@ extern void vm_destroy(){
 
 
 extern int vm_syslog(void *message, unsigned int len){
-  if((unsigned long) message + len > (unsigned long)VM_ARENA_SIZE + (unsigned long)VM_ARENA_BASEADDR) { //Or invalid address
+  if((unsigned long) message + len > (unsigned long)VM_ARENA_SIZE + (unsigned long)VM_ARENA_BASEADDR || (unsigned long) message < (unsigned long)VM)ARENA_BASEADDR || len == 0) { //Maybe more
       return -1;
   }
   string s = "";
@@ -218,10 +214,15 @@ extern int vm_syslog(void *message, unsigned int len){
 
     if(currentProc.vPages[index]->resident == 0) {
       currentProc.pageTable.ptes[index].read_enable == 0;
-      vm_fault(message, 1);
+      currentProc.pageTable.ptes[index].write_enable == 0;
+      vm_fault(message, 0);
     }
 
-
+    //ZERO FILLED PAGE
+    /**
+       if(currentProc.vPages[index]->zero == 0) {
+      return -1;
+      }*/
 
     while(offset - VM_PAGESIZE != 0 && len > 0) { 
       unsigned int paddress =  (currentProc.pageTable.ptes[index].ppage * VM_PAGESIZE) + offset;
