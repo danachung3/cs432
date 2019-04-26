@@ -21,7 +21,7 @@ int main()
 
 
     
-    vm_syslog(c, 9000); 
+    vm_syslog(0, 9000); 
     //    vm_syslog(d, 10000); 
 
  

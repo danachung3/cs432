@@ -88,7 +88,7 @@ extern int vm_fault(void *addr, bool write_flag){
 
   //cout << "address: " << (unsigned long)addr << "\n";
   //address is to an invalid page
-  if ((unsigned long) addr >= ((unsigned long)VM_ARENA_BASEADDR + ((unsigned long)currentProc.vPages.size() * VM_PAGESIZE))){
+  if ((unsigned long)addr >= ((unsigned long)VM_ARENA_BASEADDR + ((unsigned long)currentProc.vPages.size() * VM_PAGESIZE)) || ((unsigned long)addr < (unsigned long)VM_ARENA_BASEADDR)){
     return -1; 
   }
 
@@ -210,9 +210,6 @@ extern void vm_destroy(){
 extern int vm_syslog(void *message, unsigned int len){
   
   if((unsigned long) message + len > (VM_PAGESIZE * currentProc.vPages.size() + (unsigned long)VM_ARENA_BASEADDR) || (unsigned long) message < (unsigned long)VM_ARENA_BASEADDR || len <= 0){
-  
-  //if((unsigned long) message + len >= (unsigned long)VM_ARENA_SIZE + (unsigned long)VM_ARENA_BASEADDR || (unsigned long) message < (unsigned long)VM_ARENA_BASEADDR || len <= 0) {
-    //Maybe more... instead of us number of vitual pages
       return -1;
   }
   string s = "";
@@ -227,10 +224,19 @@ extern int vm_syslog(void *message, unsigned int len){
     unsigned int temp = VM_PAGESIZE - offset;
 
     if(currentProc.vPages[index]->resident == 0) {
-      currentProc.pageTable.ptes[index].read_enable == 0;
-      currentProc.pageTable.ptes[index].write_enable == 0;
+      currentProc.pageTable.ptes[index].read_enable = 0;
+      currentProc.pageTable.ptes[index].write_enable = 0;
       vm_fault(message, 0);
     }
+    else{
+      currentProc.vPages[index]->reference = 0;
+      // if (currentProc.vPages[index]->dirty){
+	//       	vm_fault(message, 1);
+	//	disk_write(currentProc.vPages[index]->disk_block, currentProc.pageTable.ptes[index].ppage);
+      //}
+    }
+
+    
 
     while(offset - VM_PAGESIZE != 0 && len > 0) { 
       unsigned int paddress =  (currentProc.pageTable.ptes[index].ppage * VM_PAGESIZE) + offset;
