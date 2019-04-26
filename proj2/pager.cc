@@ -91,7 +91,7 @@ extern int vm_fault(void *addr, bool write_flag){
   }
 
   //if vitual page does not have a physical page 
-  if (page_table_entry.ppage = 10000){  
+  if (currentProc.pageTable.ptes[index].ppage == 10000){  
     if (physicalMem.empty()){
       //no free space in physical mem, need to evict
 

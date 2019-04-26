@@ -44,7 +44,7 @@ int main()
 
   vm_syslog(y, 1);
 
-  cout << s[4] << "\n";
+  //  cout << s[4] << "\n";
 
   char *t;
   t = (char *) vm_extend();
