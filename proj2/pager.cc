@@ -153,7 +153,6 @@ extern int vm_fault(void *addr, bool write_flag){
 
   //if access is write
   if (write_flag || currentProc.vPages[index]->dirty == 1){
-    //if ((page_table_entry.read_enable == 0) || (page_table_entry.write_enable == 0)){
       currentProc.pageTable.ptes[index].read_enable = 1;
       currentProc.pageTable.ptes[index].write_enable = 1;
       currentProc.vPages[index]->read = 1;
@@ -162,7 +161,6 @@ extern int vm_fault(void *addr, bool write_flag){
       currentProc.vPages[index]->reference = 1;
       currentProc.vPages[index]->zero = 0;
       return 0;
-      //}
   }
   return -1;
 }
@@ -200,7 +198,7 @@ extern void vm_destroy(){
 
 
 extern int vm_syslog(void *message, unsigned int len){
-
+  
   if((unsigned long) message + (unsigned long)len > ((unsigned long)VM_PAGESIZE * currentProc.vPages.size() + (unsigned long)VM_ARENA_BASEADDR) || (unsigned long) message < (unsigned long)VM_ARENA_BASEADDR || len == 0){
       return -1;
   }
@@ -209,26 +207,17 @@ extern int vm_syslog(void *message, unsigned int len){
   while(len > 0) {
     unsigned int offset = (unsigned int)((unsigned long)message % (unsigned int)VM_PAGESIZE);
     unsigned int index = ((unsigned long) message - (unsigned long)VM_ARENA_BASEADDR) / (unsigned long) VM_PAGESIZE;
-    //  unsigned int offset = (unsigned int)((unsigned long)message % (unsigned int)VM_PAGESIZE);
     unsigned int temp = VM_PAGESIZE - offset;
 
     if(currentProc.vPages[index]->resident == 0 || currentProc.vPages[index]->reference == 0) {
       //currentProc.pageTable.ptes[index].read_enable = 0;
       //currentProc.pageTable.ptes[index].write_enable = 0;
-      
       vm_fault(message, 0);
       if (currentProc.vPages[index]->dirty){
         currentProc.vPages[index]->write = 1;
         currentProc.pageTable.ptes[index].write_enable = 1;
       }
     }
-    //else{
-    //        currentProc.vPages[index]->reference = 1;
-      // if (currentProc.vPages[index]->dirty){
-	//       	vm_fault(message, 1);
-	//	disk_write(currentProc.vPages[index]->disk_block, currentProc.pageTable.ptes[index].ppage);
-      //}
-    //}
 
 
     while(offset - VM_PAGESIZE != 0 && len > 0) {
@@ -240,9 +229,6 @@ extern int vm_syslog(void *message, unsigned int len){
       len--;
       message++;
     }
-    //    message = message + temp;
-    //offset = 0;
-
   }
   s += "\0";
   cout << "syslog \t\t\t" << s << endl;
