@@ -212,7 +212,7 @@ extern int vm_syslog(void *message, unsigned int len){
     //  unsigned int offset = (unsigned int)((unsigned long)message % (unsigned int)VM_PAGESIZE);
     unsigned int temp = VM_PAGESIZE - offset;
 
-    if(currentProc.vPages[index]->resident == 0 ){//|| currentProc.vPages[index]->reference == 0) {
+    if(currentProc.vPages[index]->resident == 0 || currentProc.vPages[index]->reference == 0) {
       currentProc.pageTable.ptes[index].read_enable = 0;
       currentProc.pageTable.ptes[index].write_enable = 0;
       vm_fault(message, 0);
