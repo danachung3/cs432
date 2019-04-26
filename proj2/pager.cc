@@ -82,16 +82,16 @@ extern void * vm_extend(){
 
 extern int vm_fault(void *addr, bool write_flag){
   unsigned int index = (unsigned int)((unsigned long) addr - (unsigned long)VM_ARENA_BASEADDR) / VM_PAGESIZE;
-  page_table_entry_t page_table_entry = currentProc.pageTable.ptes[index]; 
+  page_table_entry_t page_table_entry = currentProc.pageTable.ptes[index];
   pid_t cur = currentProc.processID;
 
   //address is to an invalid page
   if ((unsigned long)addr > ((unsigned long)VM_ARENA_BASEADDR + ((unsigned long)currentProc.vPages.size() * VM_PAGESIZE)) || ((unsigned long)addr < (unsigned long)VM_ARENA_BASEADDR)){
-    return -1; 
+    return -1;
   }
 
-  //if vitual page does not have a physical page 
-  if (currentProc.pageTable.ptes[index].ppage == 10000){  
+  //if vitual page does not have a physical page
+  if (currentProc.pageTable.ptes[index].ppage == 10000){
     if (physicalMem.empty()){
       //no free space in physical mem, need to evict
 
@@ -103,7 +103,7 @@ extern int vm_fault(void *addr, bool write_flag){
 	int i = get<0>(tickTock.front());
 	currentProc.pageTable.ptes[i].read_enable = 0;
 	currentProc.pageTable.ptes[i].write_enable = 0;
-	
+
 	tickTock.push(tickTock.front());
 	tickTock.pop();
       }
@@ -113,7 +113,7 @@ extern int vm_fault(void *addr, bool write_flag){
 	disk_write(get<1>(tickTock.front())->disk_block, currentProc.pageTable.ptes[get<0>(tickTock.front())].ppage);
 	get<1>(tickTock.front())->dirty = 0;
 	get<1>(tickTock.front())->read = 0;
-	get<1>(tickTock.front())->write = 0;	
+	get<1>(tickTock.front())->write = 0;
 	get<1>(tickTock.front())->resident = 0;
 	get<1>(tickTock.front())->reference = 0;
       }
@@ -132,7 +132,7 @@ extern int vm_fault(void *addr, bool write_flag){
     currentProc.pageTable.ptes[index].ppage = ppage;
     currentProc.vPages[index]->resident = 1;
     currentProc.vPages[index]->reference =1;
-    
+
     if(currentProc.vPages[index]->zero == 1) {
       memset((char*) pm_physmem + (ppage * VM_PAGESIZE), 0, VM_PAGESIZE);
     }
@@ -144,14 +144,14 @@ extern int vm_fault(void *addr, bool write_flag){
   }
 
   //Maybe else if, do we want to make it readable right after giving new phys?
-  if (!write_flag){ 
+  if (!write_flag){
       currentProc.pageTable.ptes[index].read_enable = 1;
       currentProc.vPages[index]->read = 1;
       currentProc.vPages[index]->reference = 1;
-      return 0; 
+      return 0;
   }
 
-  //if access is write 
+  //if access is write
   if (write_flag || currentProc.vPages[index]->dirty == 1){
     //if ((page_table_entry.read_enable == 0) || (page_table_entry.write_enable == 0)){
       currentProc.pageTable.ptes[index].read_enable = 1;
@@ -161,7 +161,7 @@ extern int vm_fault(void *addr, bool write_flag){
       currentProc.vPages[index]->dirty = 1;
       currentProc.vPages[index]->reference = 1;
       currentProc.vPages[index]->zero = 0;
-      return 0; 
+      return 0;
       //}
   }
   return -1;
@@ -194,28 +194,33 @@ extern void vm_destroy(){
     }
     i--;
   }
-  
+
   return;
 }
 
 
 extern int vm_syslog(void *message, unsigned int len){
-  
+
   if((unsigned long) message + (unsigned long)len > ((unsigned long)VM_PAGESIZE * currentProc.vPages.size() + (unsigned long)VM_ARENA_BASEADDR) || (unsigned long) message < (unsigned long)VM_ARENA_BASEADDR || len == 0){
       return -1;
   }
   string s = "";
-  
+
   while(len > 0) {
-    unsigned int offset = (unsigned int)((unsigned long)message % (unsigned int)VM_PAGESIZE);  
+    unsigned int offset = (unsigned int)((unsigned long)message % (unsigned int)VM_PAGESIZE);
     unsigned int index = ((unsigned long) message - (unsigned long)VM_ARENA_BASEADDR) / (unsigned long) VM_PAGESIZE;
     //  unsigned int offset = (unsigned int)((unsigned long)message % (unsigned int)VM_PAGESIZE);
     unsigned int temp = VM_PAGESIZE - offset;
 
     if(currentProc.vPages[index]->resident == 0 || currentProc.vPages[index]->reference == 0) {
-      currentProc.pageTable.ptes[index].read_enable = 0;
-      currentProc.pageTable.ptes[index].write_enable = 0;
+      //currentProc.pageTable.ptes[index].read_enable = 0;
+      //currentProc.pageTable.ptes[index].write_enable = 0;
+      
       vm_fault(message, 0);
+      if (currentProc.vPages[index]->dirty){
+        currentProc.vPages[index]->write = 1;
+        currentProc.pageTable.ptes[index].write_enable = 1;
+      }
     }
     //else{
     //        currentProc.vPages[index]->reference = 1;
@@ -225,9 +230,8 @@ extern int vm_syslog(void *message, unsigned int len){
       //}
     //}
 
-    
 
-    while(offset - VM_PAGESIZE != 0 && len > 0) { 
+    while(offset - VM_PAGESIZE != 0 && len > 0) {
       unsigned int paddress =  (currentProc.pageTable.ptes[index].ppage * VM_PAGESIZE) + offset;
       char c = ((char *)pm_physmem)[paddress];
       //s.append(&((char*)pm_physmem)[paddress]);
@@ -237,8 +241,8 @@ extern int vm_syslog(void *message, unsigned int len){
       message++;
     }
     //    message = message + temp;
-    //offset = 0; 
-    
+    //offset = 0;
+
   }
   s += "\0";
   cout << "syslog \t\t\t" << s << endl;
