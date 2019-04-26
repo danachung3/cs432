@@ -1,13 +1,31 @@
-#include <iostream>
+≈ç#include <iostream>
 #include <stdio.h>
 #include "vm_app.h"
 using namespace std;
 int main()
 {
 
-  char *p; 
-  p = (char *) vm_extend();
-  
-  vm_syslog(p,5); 
 
+    char *c;
+    c = (char*) vm_extend();
+    for (int i = 0; i = 8193; i++){
+      c[i] = 'a';
+    }
+
+    //    char *d;
+    //d = (char*) vm_extend();
+    //for (int i = 0; i = 9000; i++){
+    //   d[i] = 'b'; 
+    //}
+    
+
+
+    
+    vm_syslog(c, 9000); 
+    //    vm_syslog(d, 10000); 
+
+ 
+
+
+  
 }

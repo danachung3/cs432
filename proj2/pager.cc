@@ -40,7 +40,6 @@ extern void vm_init(unsigned int memory_pages, unsigned int disk_blocks) {
   for(int i = 0; i < memory_pages; i++){
     physicalMem.push(i);
   }
-  cout << disk_blocks;
   for(int i = 0; i < disk_blocks; i++){
     disk.push(i);
   }
@@ -84,14 +83,19 @@ extern void * vm_extend(){
 extern int vm_fault(void *addr, bool write_flag){
   unsigned int index = (unsigned int)((unsigned long) addr - (unsigned long)VM_ARENA_BASEADDR) / VM_PAGESIZE;
   page_table_entry_t page_table_entry = currentProc.pageTable.ptes[index]; 
-  //vpage_t* current_vpage = currentProc.vPages[index];
-  //int i = 0;
-
+  
   pid_t cur = currentProc.processID;
-  //if virtual page does not have a physical page
-  if (page_table_entry.ppage == 10000){    
 
-    //If no physical memory available, must run clock algo
+  //cout << "address: " << (unsigned long)addr << "\n";
+  //address is to an invalid page
+  if ((unsigned long) addr >= ((unsigned long)VM_ARENA_BASEADDR + ((unsigned long)currentProc.vPages.size() * VM_PAGESIZE))){
+    return -1; 
+  }
+
+  //if vitual page does not have a physical page 
+  if (page_table_entry.ppage = 1000){
+
+  
     if (physicalMem.empty()){
       //no free space in physical mem, need to evict
 
@@ -204,13 +208,22 @@ extern void vm_destroy(){
 
 
 extern int vm_syslog(void *message, unsigned int len){
-  if((unsigned long) message + len > (unsigned long)VM_ARENA_SIZE + (unsigned long)VM_ARENA_BASEADDR || (unsigned long) message < (unsigned long)VM)ARENA_BASEADDR || len == 0) { //Maybe more
+  
+  if((unsigned long) message + len > (VM_PAGESIZE * currentProc.vPages.size() + (unsigned long)VM_ARENA_BASEADDR) || (unsigned long) message < (unsigned long)VM_ARENA_BASEADDR || len <= 0){
+  
+  //if((unsigned long) message + len >= (unsigned long)VM_ARENA_SIZE + (unsigned long)VM_ARENA_BASEADDR || (unsigned long) message < (unsigned long)VM_ARENA_BASEADDR || len <= 0) {
+    //Maybe more... instead of us number of vitual pages
       return -1;
   }
   string s = "";
+
+  unsigned int offset = (unsigned int)((unsigned long)message % (unsigned int)VM_PAGESIZE);
+
+  
   while(len > 0) {
+
     unsigned int index = ((unsigned long) message - (unsigned long)VM_ARENA_BASEADDR) / (unsigned long) VM_PAGESIZE;
-    unsigned int offset = (unsigned int)((unsigned long)message % (unsigned int)VM_PAGESIZE);
+    //  unsigned int offset = (unsigned int)((unsigned long)message % (unsigned int)VM_PAGESIZE);
     unsigned int temp = VM_PAGESIZE - offset;
 
     if(currentProc.vPages[index]->resident == 0) {
@@ -219,12 +232,6 @@ extern int vm_syslog(void *message, unsigned int len){
       vm_fault(message, 0);
     }
 
-    //ZERO FILLED PAGE
-    /**
-       if(currentProc.vPages[index]->zero == 0) {
-      return -1;
-      }*/
-
     while(offset - VM_PAGESIZE != 0 && len > 0) { 
       unsigned int paddress =  (currentProc.pageTable.ptes[index].ppage * VM_PAGESIZE) + offset;
       s += ((char *)pm_physmem)[paddress];
@@ -232,6 +239,8 @@ extern int vm_syslog(void *message, unsigned int len){
       len--;
     }
     message += temp;
+    offset = 0; 
+    
   }
   s += "\0";
   cout << "syslog \t\t\t" << s << endl;
