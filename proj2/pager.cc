@@ -218,7 +218,7 @@ extern int vm_syslog(void *message, unsigned int len){
       vm_fault(message, 0);
     }
     //else{
-    //    currentProc.vPages[index]->reference = 1;
+    //        currentProc.vPages[index]->reference = 1;
       // if (currentProc.vPages[index]->dirty){
 	//       	vm_fault(message, 1);
 	//	disk_write(currentProc.vPages[index]->disk_block, currentProc.pageTable.ptes[index].ppage);
@@ -230,7 +230,8 @@ extern int vm_syslog(void *message, unsigned int len){
     while(offset - VM_PAGESIZE != 0 && len > 0) { 
       unsigned int paddress =  (currentProc.pageTable.ptes[index].ppage * VM_PAGESIZE) + offset;
       char c = ((char *)pm_physmem)[paddress];
-      s.append(&((char*)pm_physmem)[paddress]);
+      //s.append(&((char*)pm_physmem)[paddress]);
+      s += ((char*)pm_physmem)[paddress];
       offset++;
       len--;
       message++;
