@@ -113,7 +113,7 @@ extern int vm_fault(void *addr, bool write_flag){
 	disk_write(get<1>(tickTock.front())->disk_block, currentProc.pageTable.ptes[get<0>(tickTock.front())].ppage);
 	get<1>(tickTock.front())->dirty = 0;
 	get<1>(tickTock.front())->read = 0;
-	get<1>(tickTock.front())->write = 0;
+	get<1>(tickTock.front())->write = 0;	
 	get<1>(tickTock.front())->resident = 0;
 	get<1>(tickTock.front())->reference = 0;
       }
@@ -201,7 +201,7 @@ extern void vm_destroy(){
 
 extern int vm_syslog(void *message, unsigned int len){
   
-  if((unsigned long) message + len > (VM_PAGESIZE * currentProc.vPages.size() + (unsigned long)VM_ARENA_BASEADDR) || (unsigned long) message < (unsigned long)VM_ARENA_BASEADDR || len <= 0){
+  if((unsigned long) message + (unsigned long)len > ((unsigned long)VM_PAGESIZE * currentProc.vPages.size() + (unsigned long)VM_ARENA_BASEADDR) || (unsigned long) message < (unsigned long)VM_ARENA_BASEADDR || len == 0){
       return -1;
   }
   string s = "";
@@ -240,7 +240,7 @@ extern int vm_syslog(void *message, unsigned int len){
     //offset = 0; 
     
   }
-  s.append("\0");
+  s += "\0";
   cout << "syslog \t\t\t" << s << endl;
   return 0;
 }
