@@ -205,20 +205,20 @@ extern int vm_syslog(void *message, unsigned int len){
       return -1;
   }
   string s = "";
-  unsigned int offset = (unsigned int)((unsigned long)message % (unsigned int)VM_PAGESIZE);  
+  
   while(len > 0) {
-
+    unsigned int offset = (unsigned int)((unsigned long)message % (unsigned int)VM_PAGESIZE);  
     unsigned int index = ((unsigned long) message - (unsigned long)VM_ARENA_BASEADDR) / (unsigned long) VM_PAGESIZE;
     //  unsigned int offset = (unsigned int)((unsigned long)message % (unsigned int)VM_PAGESIZE);
     unsigned int temp = VM_PAGESIZE - offset;
 
-    if(currentProc.vPages[index]->resident == 0 ){//|| currentProc.vPages[index]->reference == 0) {
+    if(currentProc.vPages[index]->resident == 0 || currentProc.vPages[index]->reference == 0) {
       currentProc.pageTable.ptes[index].read_enable = 0;
       currentProc.pageTable.ptes[index].write_enable = 0;
       vm_fault(message, 0);
     }
     //else{
-    //currentProc.vPages[index]->reference = 0;
+    //    currentProc.vPages[index]->reference = 1;
       // if (currentProc.vPages[index]->dirty){
 	//       	vm_fault(message, 1);
 	//	disk_write(currentProc.vPages[index]->disk_block, currentProc.pageTable.ptes[index].ppage);
@@ -230,12 +230,13 @@ extern int vm_syslog(void *message, unsigned int len){
     while(offset - VM_PAGESIZE != 0 && len > 0) { 
       unsigned int paddress =  (currentProc.pageTable.ptes[index].ppage * VM_PAGESIZE) + offset;
       char c = ((char *)pm_physmem)[paddress];
-      s.append(&c);
+      s.append(&((char*)pm_physmem)[paddress]);
       offset++;
       len--;
+      message++;
     }
-    message = message + temp;
-    offset = 0; 
+    //    message = message + temp;
+    //offset = 0; 
     
   }
   s.append("\0");
