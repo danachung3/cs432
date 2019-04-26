@@ -31,7 +31,7 @@ int main()
   c[1] = 's';
 
   
-  //  vm_syslog(c,6);
+  vm_syslog(c,6);
   char *s;
   s = (char *) vm_extend();
   s[0] = 'h';
@@ -42,15 +42,19 @@ int main()
   s[5] = 'l';
   s[6] = 's';
 
+  vm_syslog(y, 1);
+
+  cout << s[4] << "\n";
+
   char *t;
   t = (char *) vm_extend();
   t[0] = 'r';
-  //  vm_syslog(s,1);
+  vm_syslog(s,1);
 
   char *h;
   h = (char *) vm_extend();
   h[0] = 'F';
 
 
-  //  vm_syslog(p, 5);
+  vm_syslog(p, 5);
 }
