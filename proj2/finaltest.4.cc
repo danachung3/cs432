@@ -4,9 +4,10 @@
 using namespace std;
 int main()
 {
-  while(1){
-    char*p;
-    p = (char*) vm_extend();
-    p[0] = 1;
+  char* p;
+  while(vm_extend()){
+    // char*p;
+    //p = (char*) vm_extend();
+    //p[0] = 1;
   }
 }
