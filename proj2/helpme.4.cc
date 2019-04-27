@@ -4,6 +4,7 @@
 using namespace std;
 int main()
 {
+  char* p;
   while(1){
     char*p;
     p = (char*) vm_extend();
