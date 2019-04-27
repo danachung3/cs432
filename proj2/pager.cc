@@ -62,9 +62,6 @@ extern void * vm_extend(){
     return NULL;
   }
 
-  if(disk.empty()) {
-    return VM_BASE_ADRR - 1;
-  }
   int diskLoc = disk.top();
   disk.pop();
 
@@ -86,17 +83,19 @@ extern void * vm_extend(){
 
 extern int vm_fault(void *addr, bool write_flag){
   unsigned int index = (unsigned int)((unsigned long) addr - (unsigned long)VM_ARENA_BASEADDR) / VM_PAGESIZE;
-  page_table_entry_t page_table_entry = currentProc.pageTable.ptes[index];
+  
   pid_t cur = currentProc.processID;
-
+  
   //Address is to an invalid page
   if ((unsigned long)addr > ((unsigned long)VM_ARENA_BASEADDR + ((unsigned long)currentProc.vPages.size() * VM_PAGESIZE)) || ((unsigned long)addr < (unsigned long)VM_ARENA_BASEADDR)){
     return -1;
   }
+  page_table_entry_t page_table_entry = currentProc.pageTable.ptes[index];
 
   //Vitual page does not have a physical page
   if (currentProc.pageTable.ptes[index].ppage == 10000){
     //Physical memory full, need to evict a resident page
+
     if (physicalMem.empty()){ 
       //Loop through clock struct until reference bit of first element is 0
       while (get<1>(tickTock.front())->reference == 1){
@@ -106,7 +105,7 @@ extern int vm_fault(void *addr, bool write_flag){
 	int i = get<0>(tickTock.front());
 	currentProc.pageTable.ptes[i].read_enable = 0;
 	currentProc.pageTable.ptes[i].write_enable = 0;
-
+	
 	tickTock.push(tickTock.front());
 	tickTock.pop();
       }
@@ -119,7 +118,7 @@ extern int vm_fault(void *addr, bool write_flag){
       else {
 	pTable = &currentProc.pageTable;
       }
-      
+
       //If its dirty, write to disk
       if (get<1>(tickTock.front())->dirty){
 	disk_write(get<1>(tickTock.front())->disk_block, pTable->ptes[get<0>(tickTock.front())].ppage);
@@ -130,8 +129,8 @@ extern int vm_fault(void *addr, bool write_flag){
 	get<1>(tickTock.front())->reference = 0;
       }
 
-      //Set state of evicted page
       
+      //Set state of evicted page
       physicalMem.push(pTable->ptes[evictIndex].ppage);
       pTable->ptes[evictIndex].ppage = 10000;
       pTable->ptes[evictIndex].read_enable = 0;
@@ -140,6 +139,7 @@ extern int vm_fault(void *addr, bool write_flag){
     }
 
     //Grab available physical memory and set virtual page state accordingly
+
     int ppage = physicalMem.top();
     physicalMem.pop();
     currentProc.pageTable.ptes[index].ppage = ppage;
@@ -156,6 +156,7 @@ extern int vm_fault(void *addr, bool write_flag){
     tuple<int,vpage_t*> temp = make_tuple(index, currentProc.vPages[index]);
     tickTock.push(temp);
   }
+
 
   //Write fault or the vPage is dirty
   if (write_flag || currentProc.vPages[index]->dirty == 1){
@@ -198,6 +199,7 @@ extern void vm_destroy(){
     }
     i--;
   }
+
   for(int i = 0; i < currentProc.vPages.size(); i++) {
     vpage_t* temp = currentProc.vPages.at(i);
     if(temp->resident) {
@@ -206,6 +208,9 @@ extern void vm_destroy(){
     disk.push(temp->disk_block);
     delete currentProc.vPages[i];
   }
+  process_t* curr = processes.at(currentProc.processID);
+  processes.erase(currentProc.processID);
+  delete curr;
   return;
 }
 
