@@ -208,7 +208,9 @@ extern void vm_destroy(){
     disk.push(temp->disk_block);
     delete currentProc.vPages[i];
   }
-  delete currentProc;
+  process_t* curr = processes.at(currentProc.processID);
+  processes.erase(currentProc.processID);
+  delete curr;
   return;
 }
 
