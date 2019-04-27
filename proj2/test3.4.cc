@@ -12,7 +12,7 @@ int main()
   p[3] = 'l';
   p[4] = 'o';
 
-  // vm_syslog(p+8000, 1000);
+ 
 
   char *c;
   c = (char *) vm_extend();
@@ -60,7 +60,7 @@ int main()
   j = (char *) vm_extend();
   j[0] = 'F';
 
-  //  vm_syslog(p+8000,1000);
+  vm_syslog(p+8000,1000);
 
   vm_syslog(p, 5);
 }
