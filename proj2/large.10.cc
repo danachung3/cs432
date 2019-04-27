@@ -10,9 +10,9 @@ int main()
     p = (char *) vm_extend();
     //for (int y = 0; i< 65; i++){
       p[0] = 'h';
-      p[1] = 'I';
+      p[9000] = 'I';
       //}
-    vm_syslog(p, 100);
+      vm_syslog(p, 1);
   }
 
   char *d;

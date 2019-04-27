@@ -85,16 +85,15 @@ extern int vm_fault(void *addr, bool write_flag){
   page_table_entry_t page_table_entry = currentProc.pageTable.ptes[index];
   pid_t cur = currentProc.processID;
 
-  //address is to an invalid page
+  //Address is to an invalid page
   if ((unsigned long)addr > ((unsigned long)VM_ARENA_BASEADDR + ((unsigned long)currentProc.vPages.size() * VM_PAGESIZE)) || ((unsigned long)addr < (unsigned long)VM_ARENA_BASEADDR)){
     return -1;
   }
 
-  //if vitual page does not have a physical page
+  //Vitual page does not have a physical page
   if (currentProc.pageTable.ptes[index].ppage == 10000){
-    if (physicalMem.empty()){
-      //no free space in physical mem, need to evict
-
+    //Physical memory full, need to evict a resident page
+    if (physicalMem.empty()){ 
       //Loop through clock struct until reference bit of first element is 0
       while (get<1>(tickTock.front())->reference == 1){
 	get<1>(tickTock.front())->reference = 0;
@@ -118,7 +117,7 @@ extern int vm_fault(void *addr, bool write_flag){
 	get<1>(tickTock.front())->reference = 0;
       }
 
-      //Eviction stuff, check if this is ok
+      //Set state of evicted page
       int evictIndex = get<0>(tickTock.front());
       physicalMem.push(currentProc.pageTable.ptes[evictIndex].ppage);
       currentProc.pageTable.ptes[evictIndex].ppage = 10000;
@@ -126,24 +125,26 @@ extern int vm_fault(void *addr, bool write_flag){
       currentProc.pageTable.ptes[evictIndex].write_enable = 0;
       tickTock.pop();
     }
+
+    //Grab available physical memory and set virtual page state accordingly
     int ppage = physicalMem.top();
     physicalMem.pop();
-
     currentProc.pageTable.ptes[index].ppage = ppage;
     currentProc.vPages[index]->resident = 1;
-    currentProc.vPages[index]->reference =1;
-
+    currentProc.vPages[index]->reference = 1;
     if(currentProc.vPages[index]->zero == 1) {
       memset((char*) pm_physmem + (ppage * VM_PAGESIZE), 0, VM_PAGESIZE);
     }
+    //If the virtual page has already been used, grab old memory from disk
     else {
       disk_read(currentProc.vPages[index]->disk_block, currentProc.pageTable.ptes[index].ppage);
+      currentProc.vPages[index]->dirty = 0;
     }
     tuple<int,vpage_t*> temp = make_tuple(index, currentProc.vPages[index]);
     tickTock.push(temp);
   }
 
-  //Maybe else if, do we want to make it readable right after giving new phys?
+  //Read fault
   if (!write_flag){
       currentProc.pageTable.ptes[index].read_enable = 1;
       currentProc.vPages[index]->read = 1;
@@ -151,7 +152,7 @@ extern int vm_fault(void *addr, bool write_flag){
       return 0;
   }
 
-  //if access is write
+  //Write fault or the vPage is dirty
   if (write_flag || currentProc.vPages[index]->dirty == 1){
       currentProc.pageTable.ptes[index].read_enable = 1;
       currentProc.pageTable.ptes[index].write_enable = 1;
@@ -172,15 +173,6 @@ extern void vm_switch(pid_t pid){
 }
 
 extern void vm_destroy(){
-  for(int i = 0; i < currentProc.vPages.size(); i++) {
-    vpage_t* temp = currentProc.vPages.at(i);
-    if(temp->resident) {
-      physicalMem.push(currentProc.pageTable.ptes[i].ppage);
-    }
-    disk.push(temp->disk_block);
-    delete currentProc.vPages[i];
-  }
-
   int i = tickTock.size();
   while(i > 0) {
     if(get<1>(tickTock.front())->proc == currentProc.processID) {
@@ -192,42 +184,41 @@ extern void vm_destroy(){
     }
     i--;
   }
-
+  for(int i = 0; i < currentProc.vPages.size(); i++) {
+    vpage_t* temp = currentProc.vPages.at(i);
+    if(temp->resident) {
+      physicalMem.push(currentProc.pageTable.ptes[i].ppage);
+    }
+    disk.push(temp->disk_block);
+    delete currentProc.vPages[i];
+  }
   return;
 }
 
 
 extern int vm_syslog(void *message, unsigned int len){
-  
   if((unsigned long) message + (unsigned long)len > ((unsigned long)VM_PAGESIZE * currentProc.vPages.size() + (unsigned long)VM_ARENA_BASEADDR) || (unsigned long) message < (unsigned long)VM_ARENA_BASEADDR || len == 0){
       return -1;
   }
   string s = "";
-
   while(len > 0) {
     unsigned int offset = (unsigned int)((unsigned long)message % (unsigned int)VM_PAGESIZE);
     unsigned int index = ((unsigned long) message - (unsigned long)VM_ARENA_BASEADDR) / (unsigned long) VM_PAGESIZE;
     unsigned int temp = VM_PAGESIZE - offset;
-
     if(currentProc.vPages[index]->resident == 0 || currentProc.vPages[index]->reference == 0) {
-      //currentProc.pageTable.ptes[index].read_enable = 0;
-      //currentProc.pageTable.ptes[index].write_enable = 0;
       vm_fault(message, 0);
       if (currentProc.vPages[index]->dirty){
         currentProc.vPages[index]->write = 1;
         currentProc.pageTable.ptes[index].write_enable = 1;
       }
     }
-
-
     while(offset - VM_PAGESIZE != 0 && len > 0) {
       unsigned int paddress =  (currentProc.pageTable.ptes[index].ppage * VM_PAGESIZE) + offset;
       char c = ((char *)pm_physmem)[paddress];
-      //s.append(&((char*)pm_physmem)[paddress]);
       s += ((char*)pm_physmem)[paddress];
       offset++;
       len--;
-      message++;
+      message = (void *)((unsigned long)message + 1);
     }
   }
   s += "\0";

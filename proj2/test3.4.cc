@@ -60,7 +60,7 @@ int main()
   j = (char *) vm_extend();
   j[0] = 'F';
 
-  vm_syslog(p+8000,1000);
+  //  vm_syslog(p+8000,1000);
 
-  //  vm_syslog(p, 5);
+  vm_syslog(p, 5);
 }
