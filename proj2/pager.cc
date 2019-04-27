@@ -61,6 +61,10 @@ extern void * vm_extend(){
   if(disk.size() == 0) {
     return NULL;
   }
+
+  if(disk.empty()) {
+    return VM_BASE_ADRR - 1;
+  }
   int diskLoc = disk.top();
   disk.pop();
 
