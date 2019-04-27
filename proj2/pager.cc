@@ -107,9 +107,18 @@ extern int vm_fault(void *addr, bool write_flag){
 	tickTock.pop();
       }
 
+      page_table_t* pTable;
+      int evictIndex = get<0>(tickTock.front());
+      if(get<1>(tickTock.front())->proc != currentProc.processID) {
+	pTable = &processes.at(get<1>(tickTock.front())->proc)->pageTable;
+      }
+      else {
+	pTable = &currentProc.pageTable;
+      }
+      
       //If its dirty, write to disk
       if (get<1>(tickTock.front())->dirty){
-	disk_write(get<1>(tickTock.front())->disk_block, currentProc.pageTable.ptes[get<0>(tickTock.front())].ppage);
+	disk_write(get<1>(tickTock.front())->disk_block, pTable->ptes[get<0>(tickTock.front())].ppage);
 	get<1>(tickTock.front())->dirty = 0;
 	get<1>(tickTock.front())->read = 0;
 	get<1>(tickTock.front())->write = 0;
@@ -118,11 +127,11 @@ extern int vm_fault(void *addr, bool write_flag){
       }
 
       //Set state of evicted page
-      int evictIndex = get<0>(tickTock.front());
-      physicalMem.push(currentProc.pageTable.ptes[evictIndex].ppage);
-      currentProc.pageTable.ptes[evictIndex].ppage = 10000;
-      currentProc.pageTable.ptes[evictIndex].read_enable = 0;
-      currentProc.pageTable.ptes[evictIndex].write_enable = 0;
+      
+      physicalMem.push(pTable->ptes[evictIndex].ppage);
+      pTable->ptes[evictIndex].ppage = 10000;
+      pTable->ptes[evictIndex].read_enable = 0;
+      pTable->ptes[evictIndex].write_enable = 0;
       tickTock.pop();
     }
 
@@ -144,14 +153,6 @@ extern int vm_fault(void *addr, bool write_flag){
     tickTock.push(temp);
   }
 
-  //Read fault
-  if (!write_flag){
-      currentProc.pageTable.ptes[index].read_enable = 1;
-      currentProc.vPages[index]->read = 1;
-      currentProc.vPages[index]->reference = 1;
-      return 0;
-  }
-
   //Write fault or the vPage is dirty
   if (write_flag || currentProc.vPages[index]->dirty == 1){
       currentProc.pageTable.ptes[index].read_enable = 1;
@@ -163,6 +164,15 @@ extern int vm_fault(void *addr, bool write_flag){
       currentProc.vPages[index]->zero = 0;
       return 0;
   }
+
+  //Read fault
+  if (!write_flag){
+      currentProc.pageTable.ptes[index].read_enable = 1;
+      currentProc.vPages[index]->read = 1;
+      currentProc.vPages[index]->reference = 1;
+      return 0;
+  }
+
   return -1;
 }
 
