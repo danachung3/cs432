@@ -87,7 +87,7 @@ extern int vm_fault(void *addr, bool write_flag){
   pid_t cur = currentProc.processID;
   
   //Address is to an invalid page
-  if ((unsigned long)addr > ((unsigned long)VM_ARENA_BASEADDR + ((unsigned long)currentProc.vPages.size() * VM_PAGESIZE)) || ((unsigned long)addr < (unsigned long)VM_ARENA_BASEADDR)){
+  if ((unsigned long)addr >= ((unsigned long)VM_ARENA_BASEADDR + ((unsigned long)currentProc.vPages.size() * VM_PAGESIZE)) || ((unsigned long)addr < (unsigned long)VM_ARENA_BASEADDR)){
     return -1;
   }
   page_table_entry_t page_table_entry = currentProc.pageTable.ptes[index];
@@ -103,8 +103,21 @@ extern int vm_fault(void *addr, bool write_flag){
 	get<1>(tickTock.front())->read = 0;
 	get<1>(tickTock.front())->write = 0;
 	int i = get<0>(tickTock.front());
-	currentProc.pageTable.ptes[i].read_enable = 0;
-	currentProc.pageTable.ptes[i].write_enable = 0;
+
+	page_table_t* pTable1;
+	if(get<1>(tickTock.front())->proc != currentProc.processID){
+	  pTable1 = &processes.at(get<1>(tickTock.front())->proc)->pageTable;
+	}
+	else{
+	  pTable1 = &currentProc.pageTable;
+	}
+
+	pTable1->ptes[i].read_enable = 0;
+	pTable1->ptes[i].write_enable = 0; 
+
+	
+	//currentProc.pageTable.ptes[i].read_enable = 0;
+	//currentProc.pageTable.ptes[i].write_enable = 0;
 	
 	tickTock.push(tickTock.front());
 	tickTock.pop();
